@@ -101,8 +101,8 @@
         .xp-btn:active { border-top: 1px solid #000; border-left: 1px solid #000; border-right: 1px solid #fff; border-bottom: 1px solid #fff; box-shadow: inset 1px 1px #808080, inset -1px -1px #dfdfdf; padding: 4px 19px 2px 21px; }
 
         .d-day-widget { position: absolute; top: 30px; right: 40px; z-index: 10; text-align: right; }
-        .d-day-label { font-size: 14px; color: #aaa; letter-spacing: 2px; text-shadow: 1px 1px 2px #000; }
-        #ddayCount { font-size: 3rem; color: #fff; letter-spacing: 2px; text-shadow: 2px 2px 0px #000, -1px -1px 0px rgba(255,255,255,0.3); margin-top: 5px; }
+        .d-day-label { font-size: 14px; color: #ddd; letter-spacing: 2px; text-shadow: 1px 1px 2px #000; }
+        #ddayCount { font-size: 3rem; color: #ff3366; letter-spacing: 2px; text-shadow: 2px 2px 0px #000, -1px -1px 0px rgba(255,255,255,0.3); margin-top: 5px; }
 
         .taskbar { position: fixed; bottom: 0; left: 0; width: 100%; height: 28px; background: #c0c0c0; border-top: 2px solid #dfdfdf; box-shadow: inset 0 1px #fff; display: flex; justify-content: space-between; align-items: center; z-index: 10000; padding: 2px; font-family:'Gulim'; }
         .start-btn { height: 100%; padding: 0 6px; display: flex; align-items: center; gap: 4px; background: #c0c0c0; border-top: 1px solid #fff; border-left: 1px solid #fff; border-right: 1px solid #000; border-bottom: 1px solid #000; box-shadow: inset 1px 1px #dfdfdf, inset -1px -1px #808080; font-weight: bold; font-size: 11px; color: black; }
@@ -159,11 +159,19 @@
             <img src="https://win98icons.alexmeub.com/icons/png/calendar-0.png" class="icon-img">
             <span class="icon-label">캘린더</span>
         </div>
+        <div class="icon-item" onclick="window.openDailyMsg()">
+            <div style="position:relative;width:45px;height:45px;margin-bottom:5px;">
+                <img src="https://win98icons.alexmeub.com/icons/png/mail_small-0.png" style="width:45px;height:45px;filter:drop-shadow(2px 2px 2px black);">
+                <div id="dailyBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:#ff3366;color:white;border-radius:50%;width:14px;height:14px;font-size:9px;font-family:Gulim;font-weight:bold;line-height:14px;text-align:center;">!</div>
+            </div>
+            <span class="icon-label">일일메시지</span>
+        </div>
         <div class="icon-item" onclick="window.openExplorer('trash', '휴지통')">
             <img src="https://win98icons.alexmeub.com/icons/png/recycle_bin_empty-4.png" class="icon-img">
             <span class="icon-label">휴지통</span>
         </div>
     </div>
+    <div id="notifCenter" style="position:fixed;bottom:36px;right:10px;z-index:99999;width:290px;display:flex;flex-direction:column;gap:6px;pointer-events:none;"></div>
 
     <div class="wmp-player draggable" id="wmpPlayer" data-x="0" data-y="0">
         <div class="wmp-title drag-handle"><img src="https://win98icons.alexmeub.com/icons/png/mmsys_cp-0.png" style="width:14px;"> Windows Media Player</div>
@@ -275,8 +283,10 @@
 
             try { 
                 await window.loadFilesFromFirebase(); 
-                await window.loadCalendar(); 
+                await window.loadCalendar();
+                window.checkTodayMemo();
             } catch(e) {}
+            window.initDailyMsg();
         };
 
         window.initGlobalClickSound = function() {
@@ -356,20 +366,20 @@
             if(document.getElementById('calendarWindow')) return;
             const popup = document.createElement('div');
             popup.className = 'xp-window draggable'; popup.id = 'calendarWindow';
-            popup.style.cssText = `top: 150px; left: 30%; width: 420px; position: absolute; z-index: 1000; display:flex; flex-direction:column;`;
+            popup.style.cssText = `top:150px;left:30%;width:460px;position:absolute;z-index:1000;display:flex;flex-direction:column;overflow:visible;`;
             popup.innerHTML = `
                 <div class="xp-title-bar drag-handle">
-                    <div style="display:flex; align-items:center; gap:8px;"><img src="https://win98icons.alexmeub.com/icons/png/calendar-0.png" width="16"> 일정 달력</div>
+                    <div style="display:flex;align-items:center;gap:8px;"><img src="https://win98icons.alexmeub.com/icons/png/calendar-0.png" width="16"> 일정 달력</div>
                     <div class="xp-close-btn" onclick="document.getElementById('calendarWindow').remove()">✕</div>
                 </div>
-                <div style="padding:10px; display:flex; justify-content:space-between; align-items:center; color:black; font-weight:bold; font-family:'Gulim';">
+                <div style="padding:8px 10px;display:flex;justify-content:space-between;align-items:center;background:#c0c0c0;border-bottom:1px solid #808080;">
                     <button class="xp-btn" onclick="window.changeMonth(-1)">◀</button>
-                    <span id="calMonthYear"></span>
+                    <span id="calMonthYear" style="font-family:Gulim;font-weight:bold;font-size:13px;color:black;"></span>
                     <button class="xp-btn" onclick="window.changeMonth(1)">▶</button>
                 </div>
-                <div class="calendar-grid" id="calGrid"></div>
-            `;
+                <div class="calendar-grid" id="calGrid"></div>`;
             document.body.appendChild(popup);
+            window.makeResizable(popup);
             window.renderCalendar();
         };
 
@@ -378,27 +388,64 @@
         window.renderCalendar = function() {
             const grid = document.getElementById('calGrid'); if(!grid) return;
             const year = window.calDate.getFullYear(); const month = window.calDate.getMonth();
-            document.getElementById('calMonthYear').innerText = `${year}년 ${month + 1}월`;
-            const firstDay = new Date(year, month, 1).getDay(); const daysInMonth = new Date(year, month + 1, 0).getDate();
-            let html = ['일','월','화','수','목','금','토'].map(d => `<div class="cal-header">${d}</div>`).join('');
-            for(let i=0; i<firstDay; i++) html += `<div class="cal-day empty"></div>`;
+            document.getElementById('calMonthYear').innerText = `${year}년 ${month+1}월`;
+            const firstDay = new Date(year,month,1).getDay(); const daysInMonth = new Date(year,month+1,0).getDate();
+            let html = ['일','월','화','수','목','금','토'].map(d=>`<div class="cal-header">${d}</div>`).join('');
+            for(let i=0;i<firstDay;i++) html+=`<div class="cal-day empty"></div>`;
             const today = new Date();
-            for(let i=1; i<=daysInMonth; i++) {
-                const dateKey = `${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
-                const isToday = (year === today.getFullYear() && month === today.getMonth() && i === today.getDate());
-                const bg = isToday ? '#000080' : 'white'; const color = isToday ? 'white' : 'black';
-                const memo = window.config.calendar[dateKey] ? `<div class="memo-badge">${window.config.calendar[dateKey]}</div>` : '';
-                html += `<div class="cal-day" style="background:${bg}; color:${color}; cursor:pointer;" onclick="window.addMemo('${dateKey}')"><b>${i}</b>${memo}</div>`;
+            for(let i=1;i<=daysInMonth;i++){
+                const key=`${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+                const isToday=(year===today.getFullYear()&&month===today.getMonth()&&i===today.getDate());
+                const hasMemo=window.config.calendar[key];
+                const bg=isToday?'#444':'white'; const color=isToday?'white':'black';
+                const badge=hasMemo?`<div class="memo-badge" style="background:#555;color:white;">${hasMemo.split('\n')[0].substring(0,14)}</div>`:'';
+                html+=`<div class="cal-day" style="background:${bg};color:${color};" onclick="window.openDayDetail('${key}')"><b>${i}</b>${badge}</div>`;
             }
-            grid.innerHTML = html;
+            grid.innerHTML=html;
         };
 
-        window.addMemo = async function(dateStr) {
-            const txt = prompt(`${dateStr}의 일정을 입력하세요:\n(비워두면 삭제됩니다)`);
-            if(txt === null) return;
-            if(txt.trim() === '') { delete window.config.calendar[dateStr]; } else { window.config.calendar[dateStr] = txt; }
-            try { await window.setDoc(window.doc(window.db, "settings", "calendar"), window.config.calendar); } catch(e) {}
-            window.renderCalendar();
+        window.openDayDetail = function(dateKey) {
+            document.getElementById('dayDetailWin')?.remove();
+            const memos = window.config.calendar[dateKey]||'';
+            const p = document.createElement('div'); p.className='xp-window draggable'; p.id='dayDetailWin';
+            p.style.cssText='top:200px;left:38%;width:320px;position:absolute;z-index:2000;display:flex;flex-direction:column;overflow:visible;';
+            p.innerHTML=`
+                <div class="xp-title-bar drag-handle">
+                    <div style="display:flex;align-items:center;gap:6px;"><img src="https://win98icons.alexmeub.com/icons/png/calendar-0.png" width="14"> ${dateKey}</div>
+                    <div class="xp-close-btn" onclick="document.getElementById('dayDetailWin').remove()">✕</div>
+                </div>
+                <div style="background:#fff;padding:10px;flex:1;display:flex;flex-direction:column;gap:8px;">
+                    <div style="font-size:11px;font-family:Gulim;color:#333;font-weight:bold;">📋 일정</div>
+                    <textarea id="dayMemoText" style="flex:1;min-height:120px;border:2px inset #fff;padding:6px;font-family:Gulim;font-size:12px;resize:none;color:black;outline:none;">${memos}</textarea>
+                </div>
+                <div style="background:#c0c0c0;padding:6px 8px;display:flex;justify-content:flex-end;gap:6px;border-top:1px solid #808080;">
+                    <button class="xp-btn" onclick="window.saveDayMemo('${dateKey}')">저장</button>
+                    <button class="xp-btn" onclick="window.delDayMemo('${dateKey}')">삭제</button>
+                    <button class="xp-btn" onclick="document.getElementById('dayDetailWin').remove()">닫기</button>
+                </div>`;
+            document.body.appendChild(p); window.makeResizable(p);
+        };
+
+        window.saveDayMemo = async function(dateKey) {
+            const txt=document.getElementById('dayMemoText').value.trim();
+            if(txt){window.config.calendar[dateKey]=txt;}else{delete window.config.calendar[dateKey];}
+            try{await window.setDoc(window.doc(window.db,'settings','calendar'),window.config.calendar);}catch(e){}
+            document.getElementById('dayDetailWin')?.remove(); window.renderCalendar();
+        };
+        window.delDayMemo = async function(dateKey) {
+            delete window.config.calendar[dateKey];
+            try{await window.setDoc(window.doc(window.db,'settings','calendar'),window.config.calendar);}catch(e){}
+            document.getElementById('dayDetailWin')?.remove(); window.renderCalendar();
+        };
+        window.addMemo = function(d){ window.openDayDetail(d); };
+
+        window.checkTodayMemo = function() {
+            const t=new Date();
+            const key=`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+            if(window.config.calendar[key] && !sessionStorage.getItem('calNotif_'+key)){
+                sessionStorage.setItem('calNotif_'+key,'1');
+                window.pushNotif('📅 오늘의 일정', window.config.calendar[key].substring(0,100), ()=>window.openCalendar());
+            }
         };
 
         window.loadCalendar = async function() {
@@ -601,86 +648,119 @@
 
         // 🌟 수정된 로그 파싱 로직: 정규식 더 관대하게 수정 & 바탕체 적용
         window.parseLogTextToHTML = function(content) {
-            if(!content) return '아직 기록이 없습니다.';
-            const logBlocks = content.split('\n\n').filter(b => b.trim());
+            if(!content) return '<div style="color:#aaa;font-family:Gulim;font-size:12px;padding:20px;text-align:center;">아직 기록이 없습니다.</div>';
+            const blocks = content.split('\n\n').filter(b => b.trim());
             let html = ''; let lastDate = '';
 
-            logBlocks.forEach(block => {
-                // 날짜와 시간을 찾을 수 있게 좀 더 유연한 정규식으로 변경
-                const match = block.match(/^\[(.*?)\s+(\d{2}:\d{2})\]\s+(.*?)\s+:\s+([\s\S]*)$/);
-                
-                if(match) {
-                    let fullDate = match[1]; 
-                    if (fullDate.endsWith('.')) fullDate = fullDate.slice(0, -1); // 날짜 끝에 마침표 있으면 제거
-                    const time = match[2]; const name = match[3]; const text = match[4];
+            blocks.forEach(block => {
+                // [날짜 시간] 이름 : 내용  OR  [날짜미상] 이름 : 내용  (시간 없어도 OK)
+                const m = block.match(/^\[([^\]]*)\]\s*(.+?)\s*:\s*([\s\S]*)$/);
+                if(m) {
+                    const bracket = m[1].trim();
+                    const name    = m[2].trim();
+                    const text    = m[3].trim();
 
-                    if (fullDate !== lastDate) {
-                        html += `<div style="text-align:center; margin: 20px 0; border-bottom: 1px dashed #ccc; line-height: 0.1em;"><span style="background:#fff; padding:0 10px; color:#888; font-size:11px; font-family:'Gulim';">${fullDate}</span></div>`;
-                        lastDate = fullDate;
+                    const dtm = bracket.match(/(\d{4}\.\d{2}\.\d{2})\.?\s*(\d{2}:\d{2})/);
+                    const dateStr = dtm ? dtm[1] : '';
+                    const timeStr = dtm ? dtm[2] : '';
+
+                    if(dateStr && dateStr !== lastDate) {
+                        html += `<div style="text-align:center;margin:18px 0 10px;">
+                            <span style="background:#e8e8e8;padding:3px 14px;border-radius:20px;color:#888;font-size:11px;font-family:Gulim;">${dateStr}</span>
+                        </div>`;
+                        lastDate = dateStr;
                     }
 
-                    const side = name === '지우인' ? 'right' : 'left';
-                    const profileImg = name === '지칸' ? window.config.profiles.jikan : (name === '지우인' ? window.config.profiles.jiuin : window.config.profiles.jikan);
-                    
+                    const isRight = (name === '지우인');
+                    const imgSrc  = name === '지칸'  ? window.config.profiles.jikan
+                                  : name === '지우인' ? window.config.profiles.jiuin
+                                  : window.config.profiles.jikan;
+
                     html += `
-                    <div style="display:flex; align-items:flex-start; margin-bottom:15px; ${side === 'right' ? 'flex-direction:row-reverse;' : ''}">
-                        <img src="${profileImg}" style="width:40px; height:40px; border-radius:14px; margin: 0 10px; border:1px solid #ddd; object-fit:cover;">
-                        <div style="display:flex; flex-direction:column; max-width:75%; ${side === 'right' ? 'align-items:flex-end;' : 'align-items:flex-start;'}">
-                            <div style="font-size:12px; color:#555; margin-bottom:4px; font-family:'Gulim', sans-serif;"><b>${name}</b></div>
-                            <div style="background:${side === 'right' ? '#fae100' : '#f5f5f5'}; padding:10px 14px; border-radius:8px; font-size:14px; color:#111; word-break:break-all; box-shadow: 1px 1px 3px rgba(0,0,0,0.1); font-family:'Batang', 'BatangChe', serif;">
-                                ${text.replace(/\n/g, '<br>')}
+                    <div style="display:flex;align-items:flex-start;margin-bottom:14px;flex-direction:${isRight?'row-reverse':'row'};">
+                        <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;${isRight?'margin-left:8px;':'margin-right:8px;'}">
+                            <img src="${imgSrc}" style="width:42px;height:42px;border-radius:14px;border:1px solid #ddd;object-fit:cover;">
+                            <span style="font-size:10px;color:#888;margin-top:2px;font-family:Gulim;user-select:none;">${name}</span>
+                        </div>
+                        <div style="display:flex;flex-direction:column;max-width:68%;align-items:${isRight?'flex-end':'flex-start'};">
+                            <div style="background:${isRight?'#fae100':'#f5f5f5'};padding:10px 14px;border-radius:${isRight?'14px 2px 14px 14px':'2px 14px 14px 14px'};font-size:13px;color:#111;word-break:break-word;box-shadow:1px 1px 4px rgba(0,0,0,0.08);font-family:'Batang','BatangChe',serif;line-height:1.65;user-select:text;-webkit-user-select:text;">
+                                ${text.replace(/\n/g,'<br>')}
                             </div>
+                            ${timeStr?`<span style="font-size:10px;color:#bbb;margin-top:3px;font-family:Gulim;user-select:none;">${timeStr}</span>`:''}
                         </div>
                     </div>`;
-                } else { 
-                    html += `<div style="margin-bottom:10px; font-family:'Batang', 'BatangChe', serif;">${block.replace(/\n/g, '<br>')}</div>`; 
+                } else {
+                    html += `<div style="margin-bottom:8px;font-family:Gulim;font-size:11px;color:#ccc;">${block.replace(/\n/g,'<br>')}</div>`;
                 }
             });
             return html;
         };
 
         // 🌟 수정된 자동 변환기: 오류 나지 않게 빈 줄 처리 강화
+        // ✅ 카페 댓글 복붙 → 저장 포맷 변환
+        // 양식: 프로필\n닉네임(작성자)\n날짜시간답글\n내용...
         window.formatRawToStandard = function(rawText) {
-            const lines = rawText.split('\n').map(l => l.trim()).filter(l => l);
-            let standardLogs = []; let currentMsg = null;
+            if(!rawText || !rawText.trim()) return '';
+            // 이미 변환된 포맷이면 그대로
+            if(rawText.trim().match(/^\[\d{4}/)) return rawText.trim();
 
-            lines.forEach(line => {
-                const nameMatch = line.replace('작성자', '').trim();
-                
-                if(nameMatch === '지칸' || nameMatch === '지우인') {
-                    if (currentMsg && currentMsg.text.length > 0) standardLogs.push(currentMsg);
-                    currentMsg = { name: nameMatch, date: '', text: [] }; 
-                    return;
-                }
-                
-                const dateMatch = line.match(/^(\d{4}\.\d{2}\.\d{2}\.?)\s+(\d{2}:\d{2})$/);
-                if (currentMsg && dateMatch) { 
-                    currentMsg.date = line; 
-                } 
-                else if (line === '답글' || line === '수정|삭제' || line === '수정' || line === '삭제') { 
-                    /* 스킵 */ 
-                } 
-                else if (currentMsg) {
-                    let txt = line; 
-                    const otherName = currentMsg.name === '지칸' ? '지우인' : '지칸';
-                    const nameRegex = new RegExp('^' + otherName + '\\s*');
-                    txt = txt.replace(nameRegex, '').trim(); // 이름으로 시작하는 태그 지우기
-                    currentMsg.text.push(txt);
+            const lines = rawText.split('\n');
+            const SKIP = new Set(['프로필','답글','수정','삭제','수정|삭제','좋아요','신고']);
+            const isDateLine = s => /\d{4}\.\d{2}\.\d{2}/.test(s);
+            const isSkipLine = s => { const t=s.trim(); return SKIP.has(t) || isDateLine(t) || t===''; };
+            const isNameLine = s => {
+                const t = s.trim().replace('작성자','').trim();
+                return t.length>=2 && t.length<=15 && /^[가-힣a-zA-Z0-9_\-]+$/.test(t) && !isDateLine(t) && !SKIP.has(t);
+            };
+
+            const results = [];
+            let i = 0;
+
+            while(i < lines.length) {
+                const line = lines[i].trim();
+
+                if(line === '프로필') {
+                    i++;
+                    // 빈 줄 스킵
+                    while(i < lines.length && lines[i].trim() === '') i++;
+                    if(i >= lines.length) break;
+
+                    // 닉네임 라인 확인
+                    if(!isNameLine(lines[i])) continue;
+                    const name = lines[i].trim().replace('작성자','').trim();
+                    i++;
+
+                    // 날짜/스킵 줄 처리
+                    let date = '';
+                    while(i < lines.length && isSkipLine(lines[i])) {
+                        const dm = lines[i].trim().match(/(\d{4}\.\d{2}\.\d{2})\.?\s*(\d{2}:\d{2})/);
+                        if(dm) date = `${dm[1]} ${dm[2]}`;
+                        i++;
+                    }
+
+                    // 내용 수집 → 다음 '프로필'까지
+                    const content = [];
+                    while(i < lines.length && lines[i].trim() !== '프로필') {
+                        const l = lines[i].trim();
+                        i++;
+                        if(isSkipLine(l)) continue;
+                        // 앞에 붙은 상대방 이름 태그 제거
+                        let txt = l;
+                        const tag = txt.match(/^([가-힣a-zA-Z]{2,10})\s+(.+)$/);
+                        if(tag && tag[1] !== name && isNameLine(tag[1])) txt = tag[2].trim();
+                        if(txt) content.push(txt);
+                    }
+                    if(content.length) results.push({name, date, text: content.join('\n')});
                 } else {
-                    // 예외 처리용 (그냥 일반 텍스트 붙여넣었을 때)
-                    currentMsg = { name: '시스템', date: '', text: [line] };
+                    i++;
                 }
-            });
-            if (currentMsg && currentMsg.text.length > 0) standardLogs.push(currentMsg);
-            
-            return standardLogs.map(log => {
-                if (log.name === '시스템') return log.text.join('\n');
-                const d = log.date || "알수없음";
-                return `[${d}] ${log.name} : ${log.text.join('\n')}`;
-            }).join('\n\n');
+            }
+
+            if(!results.length) return rawText.trim();
+            return results.map(r=>`[${r.date||'날짜미상'}] ${r.name} : ${r.text}`).join('\n\n');
         };
 
-        // 🌟 뷰어 UI (무한으로 늘어나는 버그 min-height: 0 으로 완전 해결)
+        // 🌟 뷰어 UI
         window.viewDetail = function(file) {
             document.getElementById('clickSound').play().catch(()=>{});
             let contentHTML = ''; let iconSrc = 'https://win98icons.alexmeub.com/icons/png/notepad-0.png';
@@ -689,55 +769,64 @@
             if(file.type === 'txt') {
                 const parsedHTML = window.parseLogTextToHTML(file.content);
                 contentHTML = `
-                    <div style="display:flex; flex-direction:column; height:100%; background:#ece9d8; min-height:0;">
-                        <div class="xp-menubar" style="background:#c0c0c0; border-bottom:1px solid #808080; padding:4px 5px; font-weight:bold; font-family:'Gulim'; display:flex; justify-content:space-between;">
-                            <div><img src="https://win98icons.alexmeub.com/icons/png/write_wordpad-0.png" style="width:14px; vertical-align:middle; margin-right:5px;"> 아카이브 뷰어 v2.0</div>
-                            <span style="cursor:pointer; color:blue;" onclick="window.editRawLog('${file.docId}', '${popupId}')">[원문 편집]</span>
-                        </div>
-                        
-                        <div id="logScroll-${popupId}" data-editing="false" style="flex:6; padding:15px; background:white; color:black; overflow-y:auto; border-bottom:2px solid #808080; line-height:1.6; min-height:0;">${parsedHTML}</div>
-                        
-                        <div style="flex:4; display:flex; flex-direction:column; padding:10px; background:#c0c0c0; min-height:0;">
-                            <div style="font-size:11px; color:#333; margin-bottom:5px; font-family:'Gulim';">↓ 이곳에 복사한 댓글을 붙여넣으세요</div>
-                            <textarea id="paste-${popupId}" style="flex:1; padding:8px; border:2px inset #fff; outline:none; font-family:'Gulim'; font-size:12px; resize:none; color:black; background:#fff; min-height:0;"></textarea>
-                            <div style="text-align:right; margin-top:8px;">
-                                <button class="xp-btn" onclick="window.appendAndSaveLog('${file.docId}', '${popupId}')">자동 변환 & 추가</button>
+                    <div style="display:flex;height:100%;min-height:0;">
+                        <div style="flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;">
+                            <div class="xp-menubar" style="background:#c0c0c0;border-bottom:1px solid #808080;padding:4px 5px;font-family:Gulim;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+                                <div style="font-weight:bold;font-size:11px;"><img src="https://win98icons.alexmeub.com/icons/png/write_wordpad-0.png" style="width:14px;vertical-align:middle;margin-right:4px;">아카이브 뷰어 v2.0</div>
+                                <span style="cursor:pointer;color:blue;font-size:11px;" onclick="window.editRawLog('${file.docId}','${popupId}')">[원문 편집]</span>
                             </div>
+                            <div style="background:#c0c0c0;border-bottom:1px solid #808080;padding:3px 5px;display:flex;gap:4px;align-items:center;flex-shrink:0;">
+                                <span style="font-size:11px;">🔍</span>
+                                <input id="search-${popupId}" type="text" placeholder="검색..." style="flex:1;border:2px inset #fff;padding:2px 4px;font-family:Gulim;font-size:11px;color:black;outline:none;" oninput="window.searchLog('${popupId}',this.value)">
+                                <span id="sc-${popupId}" style="font-size:10px;color:#555;font-family:Gulim;min-width:34px;text-align:right;"></span>
+                                <button class="xp-btn" style="padding:1px 5px;font-size:10px;" onclick="window.searchNav('${popupId}',-1)">▲</button>
+                                <button class="xp-btn" style="padding:1px 5px;font-size:10px;" onclick="window.searchNav('${popupId}',1)">▼</button>
+                            </div>
+                            <div id="logScroll-${popupId}" data-editing="false" style="flex:1;padding:15px;background:white;color:black;overflow-y:auto;border-bottom:2px solid #808080;line-height:1.6;min-height:0;cursor:text;user-select:text;-webkit-user-select:text;" onmouseup="window.onLogSelect('${popupId}')">${parsedHTML}</div>
+                            <div style="flex:0 0 130px;display:flex;flex-direction:column;padding:8px;background:#c0c0c0;min-height:0;">
+                                <div style="font-size:11px;color:#333;margin-bottom:4px;font-family:Gulim;">↓ 이곳에 복사한 댓글을 붙여넣으세요</div>
+                                <textarea id="paste-${popupId}" style="flex:1;padding:6px;border:2px inset #fff;outline:none;font-family:Gulim;font-size:12px;resize:none;color:black;background:#fff;min-height:0;"></textarea>
+                                <div style="text-align:right;margin-top:5px;">
+                                    <button class="xp-btn" onclick="window.appendAndSaveLog('${file.docId}','${popupId}')">자동 변환 & 추가</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="width:120px;flex-shrink:0;background:#f4f4f4;border-left:2px solid #808080;display:flex;flex-direction:column;min-height:0;">
+                            <div style="background:#c0c0c0;border-bottom:1px solid #808080;padding:4px 6px;font-size:11px;font-family:Gulim;font-weight:bold;color:black;flex-shrink:0;">🔖 북마크</div>
+                            <div style="font-size:10px;color:#888;font-family:Gulim;padding:4px 6px;border-bottom:1px solid #ddd;flex-shrink:0;line-height:1.4;">텍스트 선택하면<br>+ 버튼이 나와요</div>
+                            <div id="bm-panel-${popupId}" style="flex:1;overflow-y:auto;"></div>
                         </div>
                     </div>`;
             } else if(file.type === 'img') {
                 iconSrc = 'https://win98icons.alexmeub.com/icons/png/image_file-0.png';
                 if(!file.url) {
                     contentHTML = `
-                        <div id="img-body-${popupId}" style="padding:20px; background:#c0c0c0; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; color:black; gap:10px; overflow-y:auto;">
+                        <div id="img-body-${popupId}" style="padding:20px;background:#c0c0c0;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:black;gap:10px;overflow-y:auto;box-sizing:border-box;">
                             <img src="https://win98icons.alexmeub.com/icons/png/image_file-0.png" style="width:48px;">
-                            <p style="font-size:12px; margin:0; font-family:'Gulim'; text-align:center;">이미지를 선택하거나 URL을 입력하세요.</p>
-
-                            <div style="width:85%; background:white; border:2px inset #fff; padding:12px; display:flex; flex-direction:column; gap:8px; align-items:center; box-sizing:border-box;">
-                                <div style="font-size:11px; font-family:'Gulim'; color:#333; font-weight:bold; align-self:flex-start;">&#128193; 내 컴퓨터에서 선택</div>
-                                <input type="file" id="fileInput-${popupId}" accept="image/*" style="display:none;" onchange="window.handleFileUpload('${file.docId}', '${popupId}', this)">
+                            <p style="font-size:12px;margin:0;font-family:Gulim;text-align:center;">이미지를 선택하거나 URL을 입력하세요.</p>
+                            <div style="width:85%;background:white;border:2px inset #fff;padding:12px;display:flex;flex-direction:column;gap:8px;align-items:center;box-sizing:border-box;">
+                                <div style="font-size:11px;font-family:Gulim;color:#333;font-weight:bold;align-self:flex-start;">&#128193; 내 컴퓨터에서 선택</div>
+                                <input type="file" id="fileInput-${popupId}" accept="image/*" multiple style="display:none;" onchange="window.handleFileUpload('${file.docId}','${popupId}',this)">
                                 <button class="xp-btn" style="width:100%;" onclick="document.getElementById('fileInput-${popupId}').click()">파일 선택...</button>
-                                <div id="upload-progress-${popupId}" style="font-size:11px; font-family:'Gulim'; color:#0000aa; display:none;"></div>
+                                <div id="upload-progress-${popupId}" style="font-size:11px;font-family:Gulim;color:#0000aa;display:none;"></div>
                             </div>
-
-                            <div style="width:85%; display:flex; align-items:center; gap:6px; font-family:'Gulim'; font-size:11px; color:#888;">
-                                <div style="flex:1; height:1px; background:#bbb;"></div>또는<div style="flex:1; height:1px; background:#bbb;"></div>
+                            <div style="width:85%;display:flex;align-items:center;gap:6px;font-family:Gulim;font-size:11px;color:#888;">
+                                <div style="flex:1;height:1px;background:#bbb;"></div>또는<div style="flex:1;height:1px;background:#bbb;"></div>
                             </div>
-
-                            <div style="width:85%; background:white; border:2px inset #fff; padding:12px; display:flex; flex-direction:column; gap:8px; box-sizing:border-box;">
-                                <div style="font-size:11px; font-family:'Gulim'; color:#333; font-weight:bold;">&#128279; URL로 입력</div>
-                                <input type="text" id="url-${popupId}" style="border:2px inset #fff; padding:3px 5px; font-family:'Gulim'; font-size:11px; color:black; outline:none; width:100%; box-sizing:border-box;" placeholder="https://...">
-                                <button class="xp-btn" onclick="window.saveImgUrl('${file.docId}', '${popupId}')">URL로 등록</button>
+                            <div style="width:85%;background:white;border:2px inset #fff;padding:12px;display:flex;flex-direction:column;gap:8px;box-sizing:border-box;">
+                                <div style="font-size:11px;font-family:Gulim;color:#333;font-weight:bold;">&#128279; URL로 입력</div>
+                                <input type="text" id="url-${popupId}" style="border:2px inset #fff;padding:3px 5px;font-family:Gulim;font-size:11px;color:black;outline:none;width:100%;box-sizing:border-box;" placeholder="https://...">
+                                <button class="xp-btn" onclick="window.saveImgUrl('${file.docId}','${popupId}')">URL로 등록</button>
                             </div>
                         </div>`;
                 } else {
                     contentHTML = `
-                        <div style="display:flex; flex-direction:column; height:100%;">
-                            <div class="xp-menubar" style="background:#c0c0c0; border-bottom:1px solid #808080; padding:4px 8px; color:black; display:flex; gap:15px; font-weight:bold; font-family:'Gulim';">
-                                <span style="cursor:pointer;" onclick="window.downloadImage('${file.url}', '${file.title}')">다운로드(D)</span>
+                        <div style="display:flex;flex-direction:column;height:100%;">
+                            <div class="xp-menubar" style="background:#c0c0c0;border-bottom:1px solid #808080;padding:4px 8px;color:black;display:flex;gap:15px;font-weight:bold;font-family:Gulim;">
+                                <span style="cursor:pointer;" onclick="window.downloadImage('${file.url}','${file.title}')">다운로드(D)</span>
                             </div>
-                            <div style="padding:10px; background:#333; flex:1; display:flex; justify-content:center; align-items:center; overflow:auto;">
-                                <img src="${file.url}" style="max-width:100%; border:2px inset #fff;">
+                            <div style="padding:10px;background:#333;flex:1;display:flex;justify-content:center;align-items:center;overflow:auto;">
+                                <img src="${file.url}" style="max-width:100%;border:2px inset #fff;">
                             </div>
                         </div>`;
                 }
@@ -745,15 +834,15 @@
 
             const popup = document.createElement('div');
             popup.className = 'xp-window draggable'; popup.id = popupId;
-            popup.style.cssText = `top: ${Math.random()*50 + 100}px; left: ${Math.random()*50 + 200}px; width: 450px; height: 500px; position: absolute; z-index: 1000;`;
+            popup.style.cssText = `top:${Math.random()*50+100}px;left:${Math.random()*50+200}px;width:560px;height:530px;position:absolute;z-index:1000;overflow:visible;`;
             popup.innerHTML = `
                 <div class="xp-title-bar drag-handle">
-                    <div style="display:flex; align-items:center; gap:8px;"><img src="${iconSrc}" style="width:16px;"><span>${file.title}</span></div>
+                    <div style="display:flex;align-items:center;gap:8px;"><img src="${iconSrc}" style="width:16px;"><span>${file.title}</span></div>
                     <div class="xp-close-btn" onclick="document.getElementById('${popupId}').remove()">✕</div>
                 </div>
-                <div style="flex:1; background:#c0c0c0; border:2px inset #fff; display:flex; flex-direction:column; min-height:0;">${contentHTML}</div>
-            `;
+                <div style="flex:1;background:#c0c0c0;border:2px inset #fff;display:flex;flex-direction:column;min-height:0;overflow:hidden;">${contentHTML}</div>`;
             document.body.appendChild(popup);
+            window.makeResizable(popup);
         };
 
         window.editRawLog = function(docId, popupId) {
@@ -806,56 +895,6 @@
             }).catch(() => { window.open(url, '_blank'); });
         };
 
-        // ✅ 로컬 파일 → base64 변환 → Firebase 저장
-        window.handleFileUpload = async function(docId, popupId, input) {
-            const file = input.files[0];
-            if (!file) return;
-
-            const progress = document.getElementById(`upload-progress-${popupId}`);
-            if (progress) { progress.style.display = 'block'; progress.textContent = '변환 중...'; }
-
-            // FileReader로 base64 변환
-            const reader = new FileReader();
-            reader.onload = async function(e) {
-                const base64 = e.target.result; // "data:image/png;base64,..."
-
-                if (progress) progress.textContent = '저장 중...';
-
-                // Firebase에 base64 저장 (url 필드에)
-                const f = window.findFileByDocId(docId);
-                if (f) { f.url = base64; f.title = file.name || f.title; }
-
-                if (docId && !docId.startsWith('doc-')) {
-                    try {
-                        await window.updateDoc(window.doc(window.db, "files", docId), { url: base64, title: file.name || '' });
-                    } catch(e) {
-                        if (progress) { progress.style.color = 'red'; progress.textContent = '저장 실패 (파일이 너무 클 수 있음). 로컬에만 표시됩니다.'; }
-                    }
-                }
-
-                // 뷰어를 이미지 표시 화면으로 교체
-                const body = document.getElementById(`img-body-${popupId}`);
-                if (body) {
-                    body.parentElement.innerHTML = `
-                        <div style="display:flex; flex-direction:column; height:100%;">
-                            <div class="xp-menubar" style="background:#c0c0c0; border-bottom:1px solid #808080; padding:4px 8px; color:black; display:flex; gap:15px; font-weight:bold; font-family:'Gulim';">
-                                <span style="cursor:pointer;" onclick="window.downloadImage('${base64}', '${file.name}')">다운로드(D)</span>
-                            </div>
-                            <div style="padding:10px; background:#333; flex:1; display:flex; justify-content:center; align-items:center; overflow:auto;">
-                                <img src="${base64}" style="max-width:100%; border:2px inset #fff;">
-                            </div>
-                        </div>`;
-                }
-                window.renderFiles(window.currentActiveFolder);
-            };
-
-            reader.onerror = function() {
-                if (progress) { progress.style.color = 'red'; progress.textContent = '파일 읽기 실패.'; }
-            };
-
-            reader.readAsDataURL(file);
-        };
-
         window.saveImgUrl = async function(docId, popupId) {
             const input = document.getElementById(`url-${popupId}`); const val = input.value.trim(); if(!val) return;
             const f = window.findFileByDocId(docId); if(f) f.url = val;
@@ -874,20 +913,276 @@
         };
 
         window.initDraggable = function() {
-            let activeEl = null, initX, initY, curX, curY;
-            document.addEventListener("mousedown", (e) => {
-                if (e.target.closest(".drag-handle")) {
-                    activeEl = e.target.closest(".draggable");
-                    initX = e.clientX - (activeEl.dataset.x || 0); initY = e.clientY - (activeEl.dataset.y || 0);
-                    // 🌟 드래그 창 클릭 시 항상 맨 위로 올라오게
-                    activeEl.style.zIndex = parseInt(activeEl.style.zIndex || 100) + 10;
+            let ae=null,ix,iy,cx,cy;
+            document.addEventListener('mousedown',e=>{
+                if(e.target.closest('.drag-handle')){
+                    ae=e.target.closest('.draggable');
+                    ix=e.clientX-(ae.dataset.x||0); iy=e.clientY-(ae.dataset.y||0);
+                    ae.style.zIndex=parseInt(ae.style.zIndex||100)+10;
                 }
             });
-            document.addEventListener("mousemove", (e) => {
-                if (activeEl) { e.preventDefault(); curX = e.clientX - initX; curY = e.clientY - initY;
-                    activeEl.dataset.x = curX; activeEl.dataset.y = curY; activeEl.style.transform = `translate3d(${curX}px, ${curY}px, 0)`; }
+            document.addEventListener('mousemove',e=>{
+                if(ae){e.preventDefault();cx=e.clientX-ix;cy=e.clientY-iy;
+                    ae.dataset.x=cx;ae.dataset.y=cy;ae.style.transform=`translate3d(${cx}px,${cy}px,0)`;}
             });
-            document.addEventListener("mouseup", () => { activeEl = null; });
+            document.addEventListener('mouseup',()=>{ae=null;});
+        };
+
+        // 🪟 리사이즈
+        window.makeResizable = function(el) {
+            if(el.querySelector('.rh')) return;
+            const h=document.createElement('div'); h.className='rh';
+            h.style.cssText='position:absolute;right:0;bottom:0;width:14px;height:14px;cursor:se-resize;z-index:9999;background:linear-gradient(135deg,transparent 40%,#808080 40%,#808080 52%,transparent 52%,transparent 66%,#808080 66%,#808080 78%,transparent 78%);';
+            el.appendChild(h);
+            let sx,sy,sw,sh;
+            h.addEventListener('mousedown',e=>{
+                e.stopPropagation();e.preventDefault();
+                sx=e.clientX;sy=e.clientY;sw=el.offsetWidth;sh=el.offsetHeight;
+                const mv=e=>{el.style.width=Math.max(280,sw+(e.clientX-sx))+'px';el.style.height=Math.max(180,sh+(e.clientY-sy))+'px';};
+                const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);};
+                document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);
+            });
+        };
+
+        // 🔔 통합 알림 (X 누를 때만 사라짐, 쌓임)
+        window.pushNotif = function(title, body, onOpenFn) {
+            document.getElementById('clickSound').play().catch(()=>{});
+            const center=document.getElementById('notifCenter'); if(!center) return;
+            const card=document.createElement('div');
+            card.style.cssText='background:#c0c0c0;border-top:2px solid #fff;border-left:2px solid #fff;border-right:2px solid #000;border-bottom:2px solid #000;box-shadow:3px 3px 8px rgba(0,0,0,0.5);font-family:Gulim;pointer-events:all;';
+            const btnHTML=onOpenFn?`<div style="padding:3px 8px 7px;text-align:right;"><button class="xp-btn">열기</button></div>`:'';
+            card.innerHTML=`
+                <div style="background:linear-gradient(to right,#000080,#1084d0);padding:3px 6px;display:flex;justify-content:space-between;align-items:center;color:white;font-size:11px;font-weight:bold;">
+                    <span>${title}</span><span style="cursor:pointer;font-size:13px;" onclick="this.closest('div').parentElement.remove()">✕</span>
+                </div>
+                <div style="padding:7px 10px;font-size:11px;color:black;white-space:pre-line;">${body}</div>
+                ${btnHTML}`;
+            if(onOpenFn){ const btn=card.querySelector('button'); if(btn) btn.onclick=()=>{onOpenFn();card.remove();}; }
+            center.appendChild(card);
+        };
+
+        // 🔍 검색
+        window._ss={};
+        window.searchLog=function(pid,q){
+            const s=document.getElementById(`logScroll-${pid}`),c=document.getElementById(`sc-${pid}`);
+            if(!s||s.dataset.editing==='true')return;
+            s.querySelectorAll('mark.hl').forEach(m=>m.replaceWith(document.createTextNode(m.textContent)));
+            s.normalize();
+            if(!q.trim()){if(c)c.textContent='';window._ss[pid]=null;return;}
+            const rx=new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');
+            const w=document.createTreeWalker(s,NodeFilter.SHOW_TEXT);
+            const hits=[];let nd;
+            while((nd=w.nextNode())){let m;while((m=rx.exec(nd.textContent))!==null)hits.push({nd,i:m.index,l:m[0].length});}
+            for(let i=hits.length-1;i>=0;i--){
+                const{nd,i:idx,l}=hits[i];nd.splitText(idx+l);const mid=nd.splitText(idx);
+                const mk=document.createElement('mark');mk.className='hl';mk.style.cssText='background:#ffff00;color:#000;';mk.textContent=mid.textContent;
+                mid.parentNode.replaceChild(mk,mid);
+            }
+            window._ss[pid]={idx:-1,total:hits.length};
+            if(c)c.textContent=hits.length?`${hits.length}건`:'없음';
+            if(hits.length)window.searchNav(pid,1);
+        };
+        window.searchNav=function(pid,dir){
+            const s=document.getElementById(`logScroll-${pid}`),c=document.getElementById(`sc-${pid}`),st=window._ss[pid];
+            if(!s||!st||!st.total)return;
+            const marks=s.querySelectorAll('mark.hl');if(!marks.length)return;
+            marks.forEach(m=>m.style.background='#ffff00');
+            st.idx=(st.idx+dir+marks.length)%marks.length;
+            marks[st.idx].style.background='#ff8800';
+            marks[st.idx].scrollIntoView({block:'center',behavior:'smooth'});
+            if(c)c.textContent=`${st.idx+1}/${st.total}`;
+        };
+
+        // 🔖 북마크 - 텍스트 선택하면 팝오버 버튼 표시
+        window._bm={};
+        window.onLogSelect=function(pid){
+            document.getElementById('bmFloatBtn')?.remove();
+            const sel=window.getSelection();
+            if(!sel||sel.isCollapsed||!sel.toString().trim())return;
+            const scroll=document.getElementById(`logScroll-${pid}`);
+            if(!scroll||!scroll.contains(sel.anchorNode))return;
+            const range=sel.getRangeAt(0);
+            const rect=range.getBoundingClientRect();
+            const btn=document.createElement('button');
+            btn.id='bmFloatBtn';
+            btn.textContent='🔖 북마크';
+            btn.style.cssText=`position:fixed;top:${rect.top-32}px;left:${rect.left}px;z-index:99999;background:#fae100;border:1px solid #aaa;padding:3px 8px;font-family:Gulim;font-size:11px;cursor:pointer;box-shadow:1px 1px 3px rgba(0,0,0,0.3);`;
+            btn.onclick=()=>{ window.addBookmark(pid,sel,range); btn.remove(); };
+            document.body.appendChild(btn);
+            setTimeout(()=>btn.remove(),3000);
+        };
+        window.addBookmark=function(pid,sel,range){
+            const text=(sel||window.getSelection()).toString().trim().substring(0,200);
+            if(!text)return;
+            if(!window._bm[pid])window._bm[pid]=[];
+            const id='bm-'+Date.now();
+            try{
+                const mark=document.createElement('mark');mark.className='bm-mark';mark.dataset.bmid=id;
+                mark.style.cssText='background:rgba(100,180,255,0.3);border-bottom:2px solid #4488ff;cursor:pointer;';
+                (range||window.getSelection().getRangeAt(0)).surroundContents(mark);
+            }catch(e){alert('범위가 너무 넓거나 복잡해요. 더 좁게 선택해보세요.');return;}
+            window._bm[pid].push({id,text:text.substring(0,55)+(text.length>55?'…':'')});
+            window.getSelection()?.removeAllRanges();
+            window.renderBmList(pid);
+        };
+        window.renderBmList=function(pid){
+            const panel=document.getElementById(`bm-panel-${pid}`);if(!panel)return;
+            const bms=window._bm[pid]||[];
+            if(!bms.length){panel.innerHTML='<div style="color:#aaa;font-size:11px;padding:6px;">없음</div>';return;}
+            panel.innerHTML=bms.map(b=>`
+                <div style="display:flex;align-items:flex-start;gap:3px;padding:4px 5px;border-bottom:1px solid #e0e0e0;cursor:pointer;" onclick="window.goBm('${pid}','${b.id}')">
+                    <span style="color:#4488ff;flex-shrink:0;">🔖</span>
+                    <span style="font-size:10px;font-family:Gulim;flex:1;color:black;line-height:1.4;word-break:break-all;">${b.text}</span>
+                    <span style="cursor:pointer;color:#bbb;font-size:11px;flex-shrink:0;" onclick="event.stopPropagation();window.delBm('${pid}','${b.id}')">✕</span>
+                </div>`).join('');
+        };
+        window.goBm=function(pid,bmid){
+            const scroll=document.getElementById(`logScroll-${pid}`);
+            const el=scroll?.querySelector(`mark.bm-mark[data-bmid="${bmid}"]`);
+            if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.style.background='rgba(100,180,255,0.7)';setTimeout(()=>el.style.background='rgba(100,180,255,0.3)',1200);}
+        };
+        window.delBm=function(pid,bmid){
+            const scroll=document.getElementById(`logScroll-${pid}`);
+            const el=scroll?.querySelector(`mark.bm-mark[data-bmid="${bmid}"]`);
+            if(el)el.replaceWith(document.createTextNode(el.textContent));
+            if(window._bm[pid])window._bm[pid]=window._bm[pid].filter(b=>b.id!==bmid);
+            window.renderBmList(pid);
+        };
+
+        // 📁 파일 업로드 (base64)
+        window.handleFileUpload=async function(docId,popupId,input){
+            const files=Array.from(input.files);if(!files.length)return;
+            const prog=document.getElementById(`upload-progress-${popupId}`);
+            if(prog){prog.style.display='block';prog.textContent='변환 중...';}
+            for(const file of files){
+                await new Promise(resolve=>{
+                    const reader=new FileReader();
+                    reader.onload=async e=>{
+                        const b64=e.target.result;
+                        const f=window.findFileByDocId(docId);
+                        if(f){f.url=b64;f.title=file.name||f.title;}
+                        if(docId&&!docId.startsWith('doc-')){try{await window.updateDoc(window.doc(window.db,'files',docId),{url:b64,title:file.name||''});}catch(e){}}
+                        const body=document.getElementById(`img-body-${popupId}`);
+                        if(body){body.parentElement.innerHTML=`
+                            <div style="display:flex;flex-direction:column;height:100%;">
+                                <div class="xp-menubar" style="background:#c0c0c0;border-bottom:1px solid #808080;padding:4px 8px;color:black;display:flex;gap:15px;font-weight:bold;font-family:Gulim;">
+                                    <span style="cursor:pointer;" onclick="window.downloadImage('${b64}','${file.name}')">다운로드(D)</span>
+                                </div>
+                                <div style="padding:10px;background:#333;flex:1;display:flex;justify-content:center;align-items:center;overflow:auto;">
+                                    <img src="${b64}" style="max-width:100%;border:2px inset #fff;"></div>
+                            </div>`;}
+                        window.renderFiles(window.currentActiveFolder);resolve();
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+            if(prog)prog.style.display='none';
+        };
+
+        // ✂️ Ctrl+X/V 파일 이동
+        window._cb=null;
+        document.addEventListener('keydown',e=>{
+            if((e.ctrlKey||e.metaKey)&&e.key==='x'&&window.selectedFile){
+                window._cb=window.selectedFile;e.preventDefault();
+                document.querySelector('.file-icon.selected')&&(document.querySelector('.file-icon.selected').style.opacity='0.5');
+                window.pushNotif('✂️ 잘라내기',`"${window._cb.title}"\nCtrl+V로 붙여넣기`,null);
+            }
+            if((e.ctrlKey||e.metaKey)&&e.key==='v'&&window._cb){
+                e.preventDefault();const f=window._cb;
+                if(f.folder!==window.currentActiveFolder){window.moveFileToFolder(f.docId,window.currentActiveFolder);window._cb=null;window.pushNotif('✅ 이동',`"${f.title}" 이동 완료`,null);}
+            }
+        });
+
+        // 💌 데일리 메시지 (Gemini 1.5 Flash - 무료 티어 지원)
+        window.openDailyMsg=function(){
+            if(document.getElementById('dailyMsgWin')){document.getElementById('dailyMsgWin').style.display='flex';return;}
+            const p=document.createElement('div');p.className='xp-window draggable';p.id='dailyMsgWin';
+            p.style.cssText='top:80px;right:360px;left:auto;width:340px;height:460px;position:fixed;z-index:2000;display:flex;flex-direction:column;overflow:visible;';
+            p.innerHTML=`
+                <div class="xp-title-bar drag-handle" style="background:linear-gradient(to right,#2b2b2b,#444);">
+                    <div style="font-size:13px;">&#128140; Daily Message</div>
+                    <div class="xp-close-btn" style="background:transparent;border:none;box-shadow:none;color:white;font-size:13px;" onclick="document.getElementById('dailyMsgWin').style.display='none'">&#10005;</div>
+                </div>
+                <div style="background:#c0c0c0;padding:2px 6px;font-size:11px;color:black;border-bottom:1px solid #808080;font-family:Gulim;">파일(F) 보기(V) 도움말(H)</div>
+                <div id="dailyMsgBody" style="flex:1;overflow-y:auto;background:#1a1a2e;padding:15px;display:flex;flex-direction:column;gap:12px;">
+                    <div style="color:#aaa;font-size:11px;font-family:Gulim;text-align:center;">불러오는 중...</div>
+                </div>
+                <div style="background:#c0c0c0;padding:5px 6px;border-top:1px solid #808080;display:flex;align-items:center;gap:4px;">
+                    <span style="font-size:10px;font-family:Gulim;color:#555;white-space:nowrap;">API키:</span>
+                    <input id="gemApiInput" type="password" style="flex:1;border:1px inset #808080;font-family:Gulim;font-size:10px;padding:1px 3px;min-width:0;" placeholder="AIza..." value="${localStorage.getItem('gemApiKey')||''}" onchange="localStorage.setItem('gemApiKey',this.value)">
+                    <button class="xp-btn" style="white-space:nowrap;" onclick="window.fetchDailyMsg(true)">새로고침</button>
+                </div>`;
+            document.body.appendChild(p);
+            window.makeResizable(p);
+            const badge=document.getElementById('dailyBadge');if(badge)badge.style.display='none';
+            window.fetchDailyMsg(false);
+        };
+
+        window.fetchDailyMsg=async function(force){
+            const body=document.getElementById('dailyMsgBody');if(!body)return;
+            const today=new Date().toDateString();
+            const cached=!force&&localStorage.getItem('dailyMsg_'+today);
+            if(cached){window._renderDaily(JSON.parse(cached));return;}
+            body.innerHTML='<div style="color:#aaa;font-size:11px;font-family:Gulim;text-align:center;padding-top:30px;">생성 중...</div>';
+            const apiKey=localStorage.getItem('gemApiKey')||'';
+            if(!apiKey){body.innerHTML='<div style="color:#f88;font-size:11px;font-family:Gulim;text-align:center;padding:20px;">하단 API키 입력창에<br>Gemini API키를 입력하세요.<br><br>aistudio.google.com에서<br>무료로 발급받을 수 있어요.</div>';return;}
+            try{
+                // gemini-1.5-flash-latest: 무료 티어에서 안정적
+                const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+                const res=await fetch(url,{
+                    method:'POST',headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({
+                        contents:[{parts:[{text:`두 캐릭터가 오늘(${new Date().toLocaleDateString('ko-KR')}) 짧게 한마디씩.
+지칸: 냉소적, 말 짧고 툭툭 내뱉음, 속마음 따뜻하지만 절대 티 안 냄.
+지우인: 능글맞고 여유로움, 장난기 있음, 다정함이 묻어남.
+JSON 배열만 반환(다른 텍스트 없이):
+[{"name":"지칸","msg":"..."},{"name":"지우인","msg":"..."}]`}]}],
+                        generationConfig:{temperature:0.95,maxOutputTokens:200}
+                    })
+                });
+                const data=await res.json();
+                if(data.error)throw new Error(data.error.message);
+                const raw=data.candidates[0].content.parts[0].text.replace(/```json|```/g,'').trim();
+                const msgs=JSON.parse(raw);
+                localStorage.setItem('dailyMsg_'+today,JSON.stringify(msgs));
+                window._renderDaily(msgs);
+            }catch(err){
+                body.innerHTML=`<div style="color:#f88;font-size:11px;font-family:Gulim;text-align:center;padding:20px;">오류: ${err.message}<br><br>API 키를 확인하거나 새로고침해보세요.</div>`;
+            }
+        };
+
+        window._renderDaily=function(msgs){
+            const body=document.getElementById('dailyMsgBody');if(!body)return;
+            body.innerHTML='';
+            const d=document.createElement('div');d.style.cssText='text-align:center;color:#555;font-size:10px;font-family:Gulim;margin-bottom:4px;';
+            d.textContent=new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'});body.appendChild(d);
+            msgs.forEach(m=>{
+                const isJ=m.name==='지우인';
+                const img=isJ?window.config.profiles.jiuin:window.config.profiles.jikan;
+                const div=document.createElement('div');div.style.cssText=`display:flex;align-items:flex-start;gap:8px;flex-direction:${isJ?'row-reverse':'row'};`;
+                div.innerHTML=`
+                    <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">
+                        <img src="${img}" style="width:38px;height:38px;border-radius:12px;border:1px solid #444;object-fit:cover;">
+                        <span style="font-size:9px;color:#888;margin-top:2px;font-family:Gulim;">${m.name}</span>
+                    </div>
+                    <div style="max-width:72%;">
+                        <div style="background:${isJ?'#fae100':'#2d2d2d'};color:${isJ?'#111':'#eee'};padding:9px 12px;border-radius:${isJ?'12px 2px 12px 12px':'2px 12px 12px 12px'};font-size:13px;font-family:'Batang',serif;line-height:1.6;box-shadow:0 2px 6px rgba(0,0,0,0.3);">${m.msg}</div>
+                    </div>`;
+                body.appendChild(div);
+            });
+        };
+
+        window.initDailyMsg=function(){
+            const today=new Date().toDateString();
+            if(!localStorage.getItem('dailyMsg_'+today)){
+                const badge=document.getElementById('dailyBadge');if(badge)badge.style.display='block';
+                window.pushNotif('&#128140; 일일메시지 도착','지칸과 지우인의 오늘 메시지가 도착했어요!',()=>window.openDailyMsg());
+            }
+            const now=new Date(),midnight=new Date(now);midnight.setHours(24,0,0,0);
+            setTimeout(()=>{
+                localStorage.removeItem('dailyMsg_'+today);window.initDailyMsg();
+                setInterval(()=>{localStorage.removeItem('dailyMsg_'+new Date().toDateString());window.initDailyMsg();},86400000);
+            },midnight-now);
         };
     </script>
 </body>
