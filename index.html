@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JIKAN-UIN ARCHIVE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap');
+
+        :root {
+            --bg-color: #000000;
+            --kakao-yellow: #fae100;
+            --kakao-dark: #222222;
+            --xp-blue: linear-gradient(to bottom, #0058e4 0%, #3b8df5 10%, #0058e4 100%);
+            --wmp-bg: #d4d0c8;
+            --wmp-border: #808080;
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            background-color: var(--bg-color);
+            color: #ccc;
+            font-family: 'Tahoma', 'Noto Sans KR', sans-serif;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* 0. 전체 노이즈 및 비네팅 효과 */
+        body::before {
+            content: "";
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: url('https://grainy-gradients.vercel.app/noise.svg');
+            opacity: 0.15;
+            pointer-events: none;
+            z-index: 9999;
+        }
+        .vignette {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, transparent 40%, rgba(0,0,0,0.9) 100%);
+            pointer-events: none;
+            z-index: 9998;
+        }
+
+        /* 배경 이미지 */
+        .bg-container {
+            position: fixed;
+            top: 0; right: 0;
+            width: 75%; height: 100%;
+            z-index: 1;
+        }
+        .bg-image { width: 100%; height: 100%; object-fit: cover; filter: brightness(0.6) contrast(1.1); }
+        .fade-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to right, #000000 0%, #000000 30%, transparent 90%);
+            z-index: 2;
+        }
+
+        /* 대각선 카톡 루프 (속도 대폭 감속) */
+        .chat-stream {
+            position: fixed;
+            top: -50%; left: -5%;
+            width: 55%; height: 200%;
+            transform: rotate(22deg);
+            z-index: 3;
+            overflow: hidden;
+            pointer-events: none;
+            mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
+        }
+        .chat-track {
+            display: flex; flex-direction: column; gap: 60px;
+            padding: 150px;
+            animation: scrollUp 140s linear infinite; /* 90s -> 140s 로 더 느리게 */
+        }
+        @keyframes scrollUp {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-50%); }
+        }
+
+        /* 카톡 메시지 */
+        .chat-item { display: flex; width: 100%; align-items: flex-start; }
+        .chat-item.left { justify-content: flex-start; }
+        .chat-item.right { justify-content: flex-end; }
+        
+        .date-line {
+            width: 100%; text-align: center; font-size: 0.7rem; color: #444;
+            border-bottom: 1px solid #1a1a1a; line-height: 0.1em; margin: 40px 0;
+        }
+        .date-line span { background: #000; padding: 0 15px; }
+
+        .profile-box { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        .profile-img {
+            width: 50px; height: 50px; border-radius: 18px;
+            background: #111; overflow: hidden; border: 1px solid #333;
+        }
+        .profile-img img { width: 100%; height: 100%; object-fit: cover; }
+        .profile-name { font-size: 0.7rem; color: #666; }
+
+        .bubble-container { max-width: 65%; margin: 0 15px; }
+        .kakao-bubble {
+            padding: 12px 18px; border-radius: 16px;
+            font-size: 1rem; line-height: 1.5;
+            box-shadow: 4px 4px 10px rgba(0,0,0,0.5);
+        }
+        .left .kakao-bubble { background: var(--kakao-dark); color: #ddd; border-top-left-radius: 2px; }
+        .right .kakao-bubble { background: var(--kakao-yellow); color: #111; border-top-right-radius: 2px; }
+
+        /* XP 윈도우 */
+        .xp-window {
+            position: absolute; top: 100px; left: 28%;
+            width: 780px; height: 520px;
+            background: #ffffff; border: 3px solid #0054e3;
+            border-radius: 8px 8px 0 0; display: none;
+            flex-direction: column; z-index: 100;
+            box-shadow: 30px 30px 80px rgba(0,0,0,0.8);
+        }
+        .xp-title-bar {
+            background: var(--xp-blue); height: 30px;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 10px; color: white; font-weight: bold; font-size: 0.85rem; cursor: move;
+        }
+        .xp-close-btn {
+            width: 21px; height: 21px; background: #e91e63; border: 1px solid white;
+            border-radius: 2px; display: flex; align-items: center; justify-content: center;
+            font-size: 10px; cursor: pointer;
+        }
+        .xp-sidebar { width: 180px; background: linear-gradient(to bottom, #748aff 0%, #4a67ed 100%); padding: 12px; }
+        .sidebar-box { background: rgba(255, 255, 255, 0.9); border-radius: 4px; padding: 8px; font-size: 0.75rem; color: #2151dc; }
+        .xp-main-view { flex: 1; background: white; padding: 25px; display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 20px; overflow-y: auto; }
+        .file-icon { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; cursor: pointer; padding: 10px; }
+        .file-icon:hover { background: rgba(49, 106, 197, 0.1); outline: 1px solid #316ac5; }
+        .file-icon img { width: 48px; height: 48px; }
+        .file-name { font-size: 0.8rem; color: black; }
+
+        /* Windows Media Player 7/XP 스타일 */
+        .wmp-player {
+            position: fixed; bottom: 30px; right: 30px;
+            width: 320px; height: 440px;
+            background: var(--wmp-bg); border: 2px solid #808080;
+            box-shadow: inset 1px 1px #fff, inset -1px -1px #404040, 5px 5px 15px rgba(0,0,0,0.7);
+            z-index: 1000; display: flex; flex-direction: column;
+            border-radius: 3px;
+        }
+        .wmp-title {
+            background: linear-gradient(to right, #000080, #1084d0);
+            height: 22px; padding: 0 5px; display: flex; align-items: center;
+            color: white; font-size: 0.75rem; font-weight: bold; gap: 5px;
+        }
+        .wmp-menu { height: 18px; background: #d4d0c8; font-size: 0.7rem; display: flex; gap: 10px; padding-left: 5px; border-bottom: 1px solid #808080; }
+        .wmp-screen { flex: 1; background: black; margin: 4px; border: 2px inset #808080; position: relative; display: flex; flex-direction: column; }
+        .album-cover { width: 100%; height: 200px; object-fit: cover; }
+        .wmp-info-panel { height: 100px; background: black; color: #00ff00; font-family: 'Gulim', monospace; font-size: 0.7rem; padding: 8px; border-top: 1px solid #444; }
+        .wmp-controls { height: 60px; background: #d4d0c8; display: flex; flex-direction: column; padding: 5px; gap: 5px; }
+        .wmp-buttons { display: flex; justify-content: center; gap: 10px; }
+        .wmp-btn { 
+            width: 25px; height: 25px; background: #d4d0c8; 
+            border: 1px solid #808080; border-radius: 2px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.7rem; color: #333; cursor: pointer;
+            box-shadow: inset 1px 1px #fff, 1px 1px 2px #404040;
+        }
+        .wmp-btn:active { box-shadow: inset 1px 1px 2px #404040; }
+
+        /* 바탕화면 아이콘 */
+        .desktop-icons { position: fixed; bottom: 40px; left: 50px; display: flex; gap: 45px; z-index: 10; }
+        .icon-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+        .icon-img { width: 55px; height: 55px; margin-bottom: 8px; filter: drop-shadow(2px 2px 2px black); }
+        .icon-label { font-size: 0.85rem; color: white; text-shadow: 2px 2px 4px black; }
+
+        /* 뷰어 */
+        .content-viewer { padding: 20px; color: black; height: 100%; background: white; overflow-y: auto; }
+        .notepad-text { font-family: 'Gulim', monospace; white-space: pre-wrap; font-size: 1rem; line-height: 1.6; }
+        .image-display { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+        .image-display img { max-width: 100%; border: 1px solid #aaa; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+
+        ::-webkit-scrollbar { width: 16px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #d4d0c8; border: 1px solid #fff; }
+    </style>
+</head>
+<body>
+
+    <div class="vignette"></div>
+
+    <div class="bg-container">
+        <img src="https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdna%2Fbo0278%2FdJMcafL32e7%2FAAAAAAAAAAAAAAAAAAAAABlHjiaQc4NH3u1mNQVjRHfd-DvmuBcNJd2YohedpmLn%2Fimg.png%3Fcredential%3DyqXZFxpELC7KVnFOS48ylbz2pIh7yKj8%26expires%3D1774969199%26allow_ip%3D%26allow_referer%3D%26signature%3DmsuoDZ%252FDOFMkyKffXpYXOGq0wjg%253D" alt="Background" class="bg-image">
+        <div class="fade-overlay"></div>
+    </div>
+
+    <div class="chat-stream">
+        <div class="chat-track" id="chatTrack"></div>
+    </div>
+
+    <!-- 고전 바탕화면 아이콘 -->
+    <div class="desktop-icons">
+        <div class="icon-item" onclick="openWindow('folder-text', '기록 아카이브')">
+            <img src="https://win98icons.alexmeub.com/icons/png/directory_open_file_mydocs-4.png" class="icon-img">
+            <span class="icon-label">기록 폴더</span>
+        </div>
+        <div class="icon-item" onclick="openWindow('folder-photos', '사진첩')">
+            <img src="https://win98icons.alexmeub.com/icons/png/camera-0.png" class="icon-img">
+            <span class="icon-label">사진첩</span>
+        </div>
+        <div class="icon-item" onclick="openWindow('trash', '휴지통')">
+            <img src="https://win98icons.alexmeub.com/icons/png/recycle_bin_empty-4.png" class="icon-img">
+            <span class="icon-label">휴지통</span>
+        </div>
+    </div>
+
+    <!-- Windows Media Player 7/XP 재현 -->
+    <div class="wmp-player">
+        <div class="wmp-title">
+            <img src="https://win98icons.alexmeub.com/icons/png/mmsys_cp-0.png" style="width:14px;">
+            Windows Media Player
+        </div>
+        <div class="wmp-menu">파일(F) 보기(V) 재생(P) 즐겨찾기(A) 도움말(H)</div>
+        <div class="wmp-screen">
+            <img src="https://image.bugsm.co.kr/album/images/200/203296/20329614.jpg?version=20250404015924" class="album-cover" alt="Album Art">
+            <div class="wmp-info-panel">
+                쇼: Jikan-Uin Archive<br>
+                클립: One Last Time<br>
+                만든 이: JIKAN-UIN<br>
+                저작권: 2024 Archive
+            </div>
+            <iframe id="musicFrame" style="position:absolute; visibility:hidden; pointer-events:none;" src="https://www.youtube.com/embed/XCliKS4XlWc?autoplay=1&mute=0&loop=1&playlist=XCliKS4XlWc" allow="autoplay"></iframe>
+        </div>
+        <div class="wmp-controls">
+            <div style="width:100%; height:8px; background:#808080; position:relative; border:1px inset #fff;">
+                <div style="position:absolute; left:20%; top:-4px; width:6px; height:14px; background:#d4d0c8; border:1px solid #404040;"></div>
+            </div>
+            <div class="wmp-buttons">
+                <div class="wmp-btn"><i class="fas fa-play"></i></div>
+                <div class="wmp-btn"><i class="fas fa-pause" onclick="toggleMusic()"></i></div>
+                <div class="wmp-btn"><i class="fas fa-stop"></i></div>
+                <div style="width:1px; background:#808080; height:15px; margin:0 5px;"></div>
+                <div class="wmp-btn"><i class="fas fa-volume-up"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- XP 윈도우 -->
+    <div id="xpWindow" class="xp-window">
+        <div class="xp-title-bar" id="windowHeader">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <img src="https://win98icons.alexmeub.com/icons/png/directory_closed-0.png" style="width:16px;">
+                <span id="windowTitle">탐색기</span>
+            </div>
+            <div class="xp-close-btn" onclick="closeWindow()">✕</div>
+        </div>
+        <div class="xp-body">
+            <div class="xp-sidebar">
+                <div class="sidebar-box"><b>시스템 작업</b><br>새 기록 만들기<br>파일 관리</div>
+                <div class="sidebar-box" style="margin-top:10px;"><b>장소</b><br>내 문서<br>바탕 화면</div>
+            </div>
+            <div class="xp-main-view" id="mainView"></div>
+        </div>
+    </div>
+
+    <audio id="clickSound" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
+
+    <script>
+        const config = {
+            profiles: {
+                jikan: "https://i.postimg.cc/wjYnMhTH/jikanpeusa.png",
+                jiuin: "https://i.postimg.cc/QVGYB3D4/peusa.png"
+            },
+            chats: [
+                { type: 'date', text: "2024년 11월 17일" },
+                { sender: "지칸", text: "씨발, 진짜.. 너 어디냐.", side: "left" },
+                { sender: "지우인", text: "나 웃는 게 그렇게 싫어? 원수라도 진 것처럼.", side: "right" },
+                { sender: "지칸", text: "여유 부리면서 쳐웃지 마라. 꼴받으니까.", side: "left" },
+                { sender: "지우인", text: "라면 끓여준 게 어디야. 먹을 수 있으면 된 거 아냐?", side: "right" },
+                { sender: "지칸", text: "결국 내가 다시 끓이고 있다. 개맛없어.", side: "left" },
+                { type: 'date', text: "2024년 11월 18일" },
+                { sender: "지우인", text: "섹스해주잖아. 영광인 줄 알고 그냥 자.", side: "right" },
+                { sender: "지칸", text: "그게 자랑이냐. 영광 같은 소리 하고 있네.", side: "left" },
+                { sender: "지우인", text: "나 돈 없어. 눌러앉을 생각이면 네가 밥 해.", side: "right" },
+                { sender: "지칸", text: "하.. 시발. 잠 깨워봐 그럼.", side: "left" },
+                { sender: "지우인", text: "아파도 참아. 자지 말고.", side: "right" }
+            ],
+            folders: {
+                'folder-text': [
+                    { type: 'txt', title: "사고의_기록.txt", content: "지칸이 끓인 라면은 독극물이다. 다시는 맡기지 말 것." },
+                    { type: 'txt', title: "무제.txt", content: "씨발. 너 어디냐." }
+                ],
+                'folder-photos': [
+                    { type: 'img', title: "메모리_01.jpg", url: "https://images.unsplash.com/photo-1518562180175-34a163b1a9a6" }
+                ],
+                'trash': [
+                    { type: 'txt', title: "버려진_쪽지.txt", content: "재워주게?" }
+                ]
+            }
+        };
+
+        function initChatLoop() {
+            const track = document.getElementById('chatTrack');
+            const repeatedChats = Array(15).fill(config.chats).flat();
+            repeatedChats.forEach(chat => {
+                if (chat.type === 'date') {
+                    const dl = document.createElement('div');
+                    dl.className = 'date-line';
+                    dl.innerHTML = `<span>${chat.text}</span>`;
+                    track.appendChild(dl);
+                } else {
+                    const item = document.createElement('div');
+                    item.className = `chat-item ${chat.side}`;
+                    const prof = `<div class="profile-box"><div class="profile-img"><img src="${chat.side === 'left' ? config.profiles.jikan : config.profiles.jiuin}"></div><span class="profile-name">${chat.sender}</span></div>`;
+                    const bub = `<div class="bubble-container"><div class="kakao-bubble">${chat.text}</div></div>`;
+                    item.innerHTML = chat.side === 'left' ? prof + bub : bub + prof;
+                    track.appendChild(item);
+                }
+            });
+        }
+
+        function openWindow(folderId, title) {
+            document.getElementById('clickSound').play().catch(()=>{});
+            const win = document.getElementById('xpWindow');
+            document.getElementById('windowTitle').innerText = title;
+            renderFiles(folderId);
+            win.style.display = 'flex';
+        }
+
+        function closeWindow() { document.getElementById('xpWindow').style.display = 'none'; }
+
+        function renderFiles(folderId) {
+            const mainView = document.getElementById('mainView');
+            const files = config.folders[folderId] || [];
+            mainView.innerHTML = '';
+
+            files.forEach((file) => {
+                const icon = document.createElement('div');
+                icon.className = 'file-icon';
+                icon.onclick = () => viewDetail(file, folderId);
+                let img = file.type === 'img' ? "https://win98icons.alexmeub.com/icons/png/paint_old-0.png" : "https://win98icons.alexmeub.com/icons/png/notepad-0.png";
+                icon.innerHTML = `<img src="${img}"><span class="file-name">${file.title}</span>`;
+                mainView.appendChild(icon);
+            });
+
+            const addBtn = document.createElement('div');
+            addBtn.className = 'file-icon'; addBtn.style.opacity = '0.5';
+            addBtn.onclick = (e) => {
+                e.stopPropagation();
+                const t = prompt("제목:");
+                const c = prompt(folderId === 'folder-photos' ? "이미지 URL:" : "내용:");
+                if(t && c) {
+                    const newData = folderId === 'folder-photos' ? {type:'img', title:t, url:c} : {type:'txt', title:t+".txt", content:c};
+                    config.folders[folderId].push(newData);
+                    renderFiles(folderId);
+                }
+            };
+            addBtn.innerHTML = `<img src="https://win98icons.alexmeub.com/icons/png/write_wordpad-0.png"><span class="file-name">추가</span>`;
+            mainView.appendChild(addBtn);
+        }
+
+        function viewDetail(file, folderId) {
+            const mainView = document.getElementById('mainView');
+            let content = file.type === 'txt' ? `<div class="notepad-text">${file.content}</div>` : `<div class="image-display"><img src="${file.url}"></div>`;
+            mainView.innerHTML = `
+                <div class="content-viewer">
+                    <div style="border-bottom:2px solid #316ac5; padding-bottom:10px; margin-bottom:15px; display:flex; justify-content:space-between;">
+                        <b>${file.title}</b> 
+                        <span onclick="renderFiles('${folderId}')" style="cursor:pointer; color:blue;">[닫기]</span>
+                    </div>
+                    ${content}
+                </div>`;
+        }
+
+        // 윈도우 드래그
+        const win = document.getElementById('xpWindow');
+        const header = document.getElementById('windowHeader');
+        let isDragging = false, offset = {x:0, y:0};
+        header.onmousedown = (e) => { isDragging = true; offset.x = e.clientX - win.offsetLeft; offset.y = e.clientY - win.offsetTop; };
+        document.onmousemove = (e) => { if(isDragging){ win.style.left = (e.clientX - offset.x)+'px'; win.style.top = (e.clientY - offset.y)+'px'; } };
+        document.onmouseup = () => isDragging = false;
+
+        function toggleMusic() {
+            const frame = document.getElementById('musicFrame');
+            const src = frame.src;
+            frame.src = src.includes('autoplay=1') ? src.replace('autoplay=1', 'autoplay=0') : src.replace('autoplay=0', 'autoplay=1');
+        }
+
+        window.onload = initChatLoop;
+    </script>
+</body>
+</html>
