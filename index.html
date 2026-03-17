@@ -13,23 +13,27 @@
             --wmp-bg: #c0c0c0; --wmp-border: #808080;
         }
 
-        /* 🌟 전체 폰트 둥근모꼴 적용 & 커서 변경 */
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: var(--bg-color); color: #eee; font-family: 'NeoDunggeunmo', 'Gulim', sans-serif; overflow: hidden; user-select: none; cursor: url('https://win98icons.alexmeub.com/cursors/arrow.cur'), auto; }
         a, button, [onclick], .cursor-pointer, .drag-handle, .icon-item, .file-icon, .xp-btn, .wmp-btn, .start-menu-item { cursor: url('https://win98icons.alexmeub.com/cursors/pointer.cur'), pointer !important; }
 
         body::before { content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: url('https://grainy-gradients.vercel.app/noise.svg'); opacity: 0.08; pointer-events: none; z-index: 9999; }
         .vignette { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, transparent 60%, rgba(0,0,0,0.6) 100%); pointer-events: none; z-index: 9998; }
         
-        /* 🌟 눈 편안한 다크 글리치 효과 */
-        body::after { content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; background: rgba(0,0,0,0.5); background-image: url('https://grainy-gradients.vercel.app/noise.svg'); opacity: 0; transition: opacity 0.5s ease; }
-        .glitch-active::after { opacity: 1; animation: slowGlitch 0.3s 2 alternate; }
-        @keyframes slowGlitch { 0% { transform: translateY(0); } 50% { transform: translateY(2px); } 100% { transform: translateY(0); } }
+        /* 🌟 눈 아프지 않은 가벼운 글리치 (롤백) */
+        @keyframes glitch {
+            0% { transform: translate(0) }
+            20% { transform: translate(-2px, 2px) }
+            40% { transform: translate(-2px, -2px) }
+            60% { transform: translate(2px, 2px) }
+            80% { transform: translate(2px, -2px) }
+            100% { transform: translate(0) }
+        }
+        .glitch-active { animation: glitch 0.3s linear infinite; filter: hue-rotate(90deg) contrast(1.5); }
 
         .bg-container { position: fixed; top: 0; right: 0; width: 75%; height: 100%; z-index: 1; }
         .bg-image { width: 100%; height: 100%; object-fit: cover; filter: brightness(0.85); }
         .fade-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to right, #080808 0%, #080808 20%, transparent 80%); z-index: 2; }
 
-        /* 대각선 카톡 루프 */
         .chat-stream { position: fixed; top: -45%; left: -5%; width: 55%; height: 200%; transform: rotate(25deg); z-index: 3; overflow: hidden; pointer-events: none; mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent); }
         .chat-track { display: flex; flex-direction: column; gap: 50px; padding: 150px; animation: scrollUp 180s linear infinite; }
         @keyframes scrollUp { 0% { transform: translateY(0); } 100% { transform: translateY(-50%); } }
@@ -54,13 +58,11 @@
         .xp-close-btn { width: 16px; height: 16px; background: #c0c0c0; border-top: 1px solid #fff; border-left: 1px solid #fff; border-right: 1px solid #000; border-bottom: 1px solid #000; display: flex; align-items: center; justify-content: center; font-size: 10px; color: black; font-weight: bold; box-shadow: inset 1px 1px #dfdfdf, inset -1px -1px #808080; cursor: pointer; }
         .xp-close-btn:active { border-top: 1px solid #000; border-left: 1px solid #000; border-right: 1px solid #fff; border-bottom: 1px solid #fff; box-shadow: inset 1px 1px #808080, inset -1px -1px #dfdfdf; padding: 1px 0 0 1px; }
 
-        /* 바탕화면 아이콘 */
         .desktop-icons { position: fixed; top: 40px; left: 40px; display: flex; flex-direction: column; gap: 30px; z-index: 10; }
         .icon-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; width: 70px; }
         .icon-img { width: 45px; height: 45px; margin-bottom: 5px; filter: drop-shadow(2px 2px 2px black); }
         .icon-label { font-size: 0.85rem; color: white; text-shadow: 1px 1px 3px black; text-align: center; }
 
-        /* WMP 플레이어 윈도우 98 스타일 */
         .wmp-player { position: fixed; bottom: 40px; right: 30px; width: 320px; height: 480px; background: #c0c0c0; border-top: 2px solid #fff; border-left: 2px solid #fff; border-right: 2px solid #000; border-bottom: 2px solid #000; z-index: 1000; display: flex; flex-direction: column; box-shadow: inset 1px 1px #dfdfdf, inset -1px -1px #808080; }
         .wmp-title { background: linear-gradient(to right, #000080, #1084d0); height: 22px; padding: 0 3px; display: flex; align-items: center; color: white; font-size: 11px; font-weight: bold; gap: 5px; cursor: move; }
         .wmp-menu { color: black; font-size: 11px; padding: 2px 5px; }
@@ -71,7 +73,6 @@
         .wmp-btn { background: #c0c0c0; border-top: 1px solid #fff; border-left: 1px solid #fff; border-right: 1px solid #000; border-bottom: 1px solid #000; width: 30px; height: 25px; display: flex; align-items: center; justify-content: center; color: black; cursor: pointer; box-shadow: inset 1px 1px #dfdfdf, inset -1px -1px #808080; }
         .wmp-btn:active { border-top: 1px solid #000; border-left: 1px solid #000; border-right: 1px solid #fff; border-bottom: 1px solid #fff; box-shadow: inset 1px 1px #808080, inset -1px -1px #dfdfdf; padding: 1px 0 0 1px; }
 
-        /* 탐색기 */
         #xpExplorer { top: 80px; left: 20%; width: 900px; height: 600px; display: none; }
         .xp-menubar { background: #c0c0c0; padding: 2px 8px; font-size: 11px; color: black; display: flex; gap: 15px; border-bottom: 1px solid #808080; box-shadow: 0 1px #fff; font-family:'Gulim'; }
         .xp-toolbar { background: #c0c0c0; padding: 4px 8px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #808080; box-shadow: 0 1px #fff; }
@@ -99,18 +100,15 @@
         .xp-btn { background: #c0c0c0; border-top: 1px solid #fff; border-left: 1px solid #fff; border-right: 1px solid #000; border-bottom: 1px solid #000; padding: 3px 20px; font-size: 11px; box-shadow: inset 1px 1px #dfdfdf, inset -1px -1px #808080; cursor: pointer; color: black; margin: 0 5px; font-family:'Gulim'; }
         .xp-btn:active { border-top: 1px solid #000; border-left: 1px solid #000; border-right: 1px solid #fff; border-bottom: 1px solid #fff; box-shadow: inset 1px 1px #808080, inset -1px -1px #dfdfdf; padding: 4px 19px 2px 21px; }
 
-        /* 🌟 디데이 위젯 (레트로 폰트 적용) */
         .d-day-widget { position: absolute; top: 30px; right: 40px; z-index: 10; text-align: right; }
         .d-day-label { font-size: 14px; color: #aaa; letter-spacing: 2px; text-shadow: 1px 1px 2px #000; }
         #ddayCount { font-size: 3rem; color: #fff; letter-spacing: 2px; text-shadow: 2px 2px 0px #000, -1px -1px 0px rgba(255,255,255,0.3); margin-top: 5px; }
 
-        /* Taskbar (Win 98) */
         .taskbar { position: fixed; bottom: 0; left: 0; width: 100%; height: 28px; background: #c0c0c0; border-top: 2px solid #dfdfdf; box-shadow: inset 0 1px #fff; display: flex; justify-content: space-between; align-items: center; z-index: 10000; padding: 2px; font-family:'Gulim'; }
         .start-btn { height: 100%; padding: 0 6px; display: flex; align-items: center; gap: 4px; background: #c0c0c0; border-top: 1px solid #fff; border-left: 1px solid #fff; border-right: 1px solid #000; border-bottom: 1px solid #000; box-shadow: inset 1px 1px #dfdfdf, inset -1px -1px #808080; font-weight: bold; font-size: 11px; color: black; }
         .start-btn:active { border-top: 1px solid #000; border-left: 1px solid #000; border-right: 1px solid #fff; border-bottom: 1px solid #fff; box-shadow: inset 1px 1px #808080, inset -1px -1px #dfdfdf; padding: 1px 5px -1px 7px; }
         .taskbar-tray { height: 100%; padding: 0 8px; display: flex; align-items: center; border-top: 1px solid #808080; border-left: 1px solid #808080; border-right: 1px solid #fff; border-bottom: 1px solid #fff; font-size: 11px; color: black; gap: 5px; background: #c0c0c0; }
 
-        /* Start Menu (Win 98) */
         .start-menu { position: fixed; bottom: 28px; left: 0; width: 200px; background: #c0c0c0; border-top: 1px solid #fff; border-left: 1px solid #fff; border-right: 1px solid #000; border-bottom: 1px solid #000; box-shadow: inset 1px 1px #dfdfdf, inset -1px -1px #808080, 5px 5px 10px rgba(0,0,0,0.5); z-index: 9999; display: none; flex-direction: row; color: black; font-family:'Gulim'; }
         .start-menu-sidebar { width: 30px; background: linear-gradient(to bottom, #000080, #1084d0); display: flex; align-items: flex-end; padding-bottom: 5px; }
         .start-menu-sidebar span { color: white; font-weight: bold; transform: rotate(-90deg); transform-origin: left bottom; white-space: nowrap; font-size: 14px; margin-left: 5px; margin-bottom: 60px; letter-spacing: 2px; font-family:'Tahoma'; }
@@ -118,7 +116,6 @@
         .start-menu-item { padding: 8px 10px; display: flex; align-items: center; gap: 10px; font-size: 11px; cursor: pointer; }
         .start-menu-item:hover { background: #000080; color: white; }
 
-        /* Calendar (Win 98) */
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #808080; border-top: 2px solid #808080; border-left: 2px solid #808080; border-right: 2px solid #fff; border-bottom: 2px solid #fff; margin: 10px; font-family:'Gulim'; }
         .cal-header { background: #c0c0c0; text-align: center; font-size: 11px; padding: 5px; font-weight: bold; color: black; }
         .cal-day { background: white; height: 50px; padding: 3px; font-size: 11px; color: black; display: flex; flex-direction: column; overflow: hidden; cursor:pointer;}
@@ -133,7 +130,7 @@
 </head>
 <body onload="window.init()">
 
-    <audio id="clickSound" src="https://actions.google.com/sounds/v1/ui/mouse_click.ogg"></audio>
+    <audio id="clickSound" src="https://www.soundjay.com/button/sounds/button-16.mp3" preload="auto"></audio>
 
     <div class="vignette"></div>
     <div class="bg-container"><img src="https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdna%2Fbo0278%2FdJMcafL32e7%2FAAAAAAAAAAAAAAAAAAAAABlHjiaQc4NH3u1mNQVjRHfd-DvmuBcNJd2YohedpmLn%2Fimg.png%3Fcredential%3DyqXZFxpELC7KVnFOS48ylbz2pIh7yKj8%26expires%3D1774969199%26allow_ip%3D%26allow_referer%3D%26signature%3DmsuoDZ%252FDOFMkyKffXpYXOGq0wjg%253D" class="bg-image"><div class="fade-overlay"></div></div>
@@ -141,8 +138,8 @@
     <div class="chat-stream"><div class="chat-track" id="chatTrack"></div></div>
 
     <div class="d-day-widget">
-        <span class="d-day-label">SINCE 2025.12.02</span>
-        <div id="ddayCount">0 DAYS</div>
+        <span class="d-day-label">SINCE 2025.12.10</span>
+        <div id="ddayCount">D+0</div>
     </div>
 
     <div class="desktop-icons">
@@ -258,13 +255,7 @@
                 { sender: "지우인", text: "나 웃는 게 그렇게 싫어? 끓여준 게 어디야.", side: "right" }, 
                 { sender: "지칸", text: "여유 부리면서 쳐웃지 마라. 꼴받으니까.", side: "left" } 
             ],
-            folders: {
-                'folder-text': [
-                    { type: 'txt', title: "역극_3000개_백업.log", docId: 'doc-2', content: "[2026.03.12 02:03] 지칸 : 실실 웃는게 너가 더 잡상인 같아. (어깨 건드리면 눈썹 곧장 치켜오른다.) 일 안하고 농땡이 피우지 너.\n\n[2026.03.12 02:09] 지우인 : 오래 붙어있으면 나 인기 떨어지는데. (농땡이 피우냔 말에 아, 하더니 네 얼굴 앞에 손 훅 갖다댐) 이거 봐.\n\n[2026.03.12 02:10] 지칸 : 인기 얻어서 뭐하게. (네 말에 곧바로 또 미간 찡그리다 훅 다가온 손 쳐다본다.) 뭔데. 손금 봐달라고?" }
-                ],
-                'folder-photos': [{ type: 'img', title: "메모리_01.jpg", docId: 'doc-3', url: "https://images.unsplash.com/photo-1518562180175-34a163b1a9a6" }],
-                'trash': [{ type: 'txt', title: "버려진_쪽지.txt", docId: 'doc-4', content: "재워주게?" }]
-            },
+            folders: { 'folder-text': [], 'folder-photos': [], 'trash': [] },
             calendar: {} 
         };
 
@@ -277,10 +268,15 @@
             window.calcDDay();
             window.initDraggable();
             window.initChatLoop(); 
-            window.spawnCIHVirus(); // 🌟 WMP 뒤쪽에 숨겨진 CIH 바이러스 창 띄우기
+            window.spawnCIHVirus(); 
             window.updateClock(); setInterval(window.updateClock, 1000); 
             window.initGlobalClickSound(); 
-            window.initGlitchEffect(); // 🌟 느리고 묵직한 다크 글리치 효과
+            window.initGlitchEffect();
+            // 고정 창들에 리사이즈 핸들
+            ['wmpPlayer','xpExplorer'].forEach(id => {
+                const el = document.getElementById(id);
+                if(el) window.makeResizable(el);
+            });
 
             try { 
                 await window.loadFilesFromFirebase(); 
@@ -295,14 +291,13 @@
             });
         };
 
-        // 🌟 다크 글리치 이펙트 (8초 주기, 부드럽게 노이즈 낌)
         window.initGlitchEffect = function() {
             setInterval(() => {
-                if(Math.random() > 0.6) {
+                if(Math.random() > 0.9) {
                     document.body.classList.add('glitch-active');
-                    setTimeout(() => document.body.classList.remove('glitch-active'), 1000); // 1초 지속
+                    setTimeout(() => document.body.classList.remove('glitch-active'), 300);
                 }
-            }, 8000); 
+            }, 2000); 
         };
 
         window.calcDDay = function() {
@@ -342,78 +337,24 @@
             });
         };
 
-        // 🌟 캡처본(CIH 바이러스)을 WMP 뒤쪽 위치로!
         window.spawnCIHVirus = function() {
             const layer = document.getElementById('virusPopups');
             const virusImgUrl = "https://upload.wikimedia.org/wikipedia/commons/0/07/CIH.png";
-
-            for(let i=0; i<3; i++) {
+            // 두 창이 잘 보이도록 가로로 충분히 분리
+            const positions = [
+                { right: '560px', top: '25%' },
+                { right: '200px', top: '32%' },
+            ];
+            positions.forEach((pos, i) => {
                 const popup = document.createElement('div');
                 popup.className = 'xp-window draggable';
-                
-                // 미디어 플레이어 뒤쪽 (WMP z-index: 1000이므로 500으로 뒤에 숨김)
-                popup.style.right = (50 + (i * 30)) + 'px'; 
-                popup.style.bottom = (80 + (i * 40)) + 'px';
-                popup.style.left = 'auto'; popup.style.top = 'auto'; 
-                popup.style.zIndex = '500'; 
-                popup.style.width = '320px';
-                
+                popup.style.cssText = `position:fixed; right:${pos.right}; top:${pos.top}; left:auto; width:300px; z-index:${500+i};`;
                 popup.innerHTML = `
-                    <div class="xp-title-bar drag-handle"><span>Warning</span><div class="xp-close-btn" onclick="this.parentElement.parentElement.remove()">✕</div></div>
-                    <div style="padding:0; background:black; border-bottom:2px solid #fff;">
-                        <img src="${virusImgUrl}" style="width:100%; display:block; border:1px solid #808080;">
-                    </div>
+                    <div class="xp-title-bar drag-handle"><span>Warning</span><div class="xp-close-btn" onclick="this.closest('.draggable').remove()">✕</div></div>
+                    <div style="padding:0; background:black; border-bottom:2px solid #fff;"><img src="${virusImgUrl}" style="width:100%; display:block; border:1px solid #808080;"></div>
                 `;
                 layer.appendChild(popup);
-            }
-        };
-
-        window.openMessenger = function() {
-            document.getElementById('clickSound').play().catch(()=>{});
-            if(document.getElementById('messengerWindow')) return;
-            
-            const popup = document.createElement('div');
-            popup.className = 'xp-window draggable'; popup.id = 'messengerWindow';
-            popup.style.cssText = `top: 100px; left: 60%; width: 340px; height: 500px; position: absolute; z-index: 1000; display:flex; flex-direction:column; background:#c0c0c0;`;
-            
-            let chatHTML = window.config.chats.map(chat => {
-                if(chat.type === 'date') return `<div class="date-line" style="margin:10px 0;"><span style="background:rgba(0,0,0,0.2); color:#fff; font-size:11px; font-family:'Gulim';">${chat.text}</span></div>`;
-                const nameColor = chat.side === 'left' ? '#0033cc' : '#cc0000';
-                return `<div style="margin-bottom:8px; font-family:'Gulim'; font-size:12px; color:black;"><b style="color:${nameColor};">${chat.sender}</b> 말:<br><span style="color:#333;">${chat.text}</span></div>`;
-            }).join('');
-
-            popup.innerHTML = `
-                <div class="xp-title-bar drag-handle"><div style="display:flex; align-items:center; gap:8px;"><img src="https://win98icons.alexmeub.com/icons/png/chm-0.png" width="16"> Jikan - 대화</div><div class="xp-close-btn" onclick="document.getElementById('messengerWindow').remove()">✕</div></div>
-                <div style="background:#c0c0c0; padding:2px 5px; font-size:11px; color:black; border-bottom:1px solid #808080; font-family:'Gulim';">파일(F) 편집(E) 보기(V) 도움말(H)</div>
-                <div id="messengerScroll" style="flex:1; overflow-y:auto; padding:10px; background:white; border: 2px inset #d4d0c8; margin: 5px;">${chatHTML}</div>
-                <div style="padding:5px; display:flex; flex-direction:column; gap:5px;"><textarea id="msgInput" style="height:50px; border:2px inset #d4d0c8; font-family:'Gulim'; font-size:12px; resize:none;"></textarea><div style="text-align:right;"><button class="xp-btn" onclick="window.sendMsg()">보내기(S)</button></div></div>
-            `;
-            document.body.appendChild(popup);
-            document.getElementById('messengerScroll').scrollTop = document.getElementById('messengerScroll').scrollHeight;
-
-            document.getElementById('msgInput').addEventListener('keypress', function (e) {
-                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); window.sendMsg(); }
             });
-        };
-
-        window.sendMsg = function() {
-            const input = document.getElementById('msgInput'); const txt = input.value.trim(); if(!txt) return;
-            const scroll = document.getElementById('messengerScroll');
-            const item = document.createElement('div');
-            item.style.cssText = "margin-bottom:8px; font-family:'Gulim'; font-size:12px; color:black;";
-            item.innerHTML = `<b style="color:#cc0000;">나</b> 말:<br><span style="color:#333;">${txt}</span>`;
-            scroll.appendChild(item); input.value = ''; scroll.scrollTop = scroll.scrollHeight;
-
-            setTimeout(() => {
-                const msgs = ["지금은 연락을 받을 수 없다.", "뭐", "나중에 해", "바빠", "..."];
-                const reply = document.createElement('div');
-                reply.style.cssText = "margin-bottom:8px; font-family:'Gulim'; font-size:12px; color:black;";
-                reply.innerHTML = `<b style="color:#0033cc;">지칸</b> 말:<br><span style="color:#333;">${msgs[Math.floor(Math.random() * msgs.length)]}</span>`;
-                if(document.getElementById('messengerScroll')) {
-                    document.getElementById('messengerScroll').appendChild(reply);
-                    document.getElementById('messengerScroll').scrollTop = document.getElementById('messengerScroll').scrollHeight;
-                }
-            }, 2000);
         };
 
         window.openCalendar = function() {
@@ -423,11 +364,19 @@
             popup.className = 'xp-window draggable'; popup.id = 'calendarWindow';
             popup.style.cssText = `top: 150px; left: 30%; width: 420px; position: absolute; z-index: 1000; display:flex; flex-direction:column;`;
             popup.innerHTML = `
-                <div class="xp-title-bar drag-handle"><div style="display:flex; align-items:center; gap:8px;"><img src="https://win98icons.alexmeub.com/icons/png/calendar-0.png" width="16"> 일정 달력</div><div class="xp-close-btn" onclick="document.getElementById('calendarWindow').remove()">✕</div></div>
-                <div style="padding:10px; display:flex; justify-content:space-between; align-items:center; color:black; font-weight:bold; font-family:'Gulim';"><button class="xp-btn" onclick="window.changeMonth(-1)">◀</button><span id="calMonthYear"></span><button class="xp-btn" onclick="window.changeMonth(1)">▶</button></div>
+                <div class="xp-title-bar drag-handle">
+                    <div style="display:flex; align-items:center; gap:8px;"><img src="https://win98icons.alexmeub.com/icons/png/calendar-0.png" width="16"> 일정 달력</div>
+                    <div class="xp-close-btn" onclick="document.getElementById('calendarWindow').remove()">✕</div>
+                </div>
+                <div style="padding:10px; display:flex; justify-content:space-between; align-items:center; color:black; font-weight:bold; font-family:'Gulim';">
+                    <button class="xp-btn" onclick="window.changeMonth(-1)">◀</button>
+                    <span id="calMonthYear"></span>
+                    <button class="xp-btn" onclick="window.changeMonth(1)">▶</button>
+                </div>
                 <div class="calendar-grid" id="calGrid"></div>
             `;
             document.body.appendChild(popup);
+            window.makeResizable(popup);
             window.renderCalendar();
         };
 
@@ -463,7 +412,53 @@
             try { const docSnap = await window.getDocs(window.collection(window.db, "settings")); docSnap.forEach(d => { if(d.id === 'calendar') window.config.calendar = d.data(); }); } catch(e) {}
         };
 
-        // 🌟 파일 & 폴더 & 드래그앤드롭 
+        window.openMessenger = function() {
+            document.getElementById('clickSound').play().catch(()=>{});
+            if(document.getElementById('messengerWindow')) return;
+            const popup = document.createElement('div');
+            popup.className = 'xp-window draggable'; popup.id = 'messengerWindow';
+            popup.style.cssText = `top: 100px; left: 60%; width: 360px; height: 550px; position: absolute; z-index: 1000; display:flex; flex-direction:column; background:#b2c7d9;`;
+            let chatHTML = window.config.chats.map(chat => {
+                if(chat.type === 'date') return `<div class="date-line" style="margin:10px 0;"><span style="background:rgba(0,0,0,0.2); color:#fff; font-size:11px; font-family:'Gulim';">${chat.text}</span></div>`;
+                const nameColor = chat.side === 'left' ? '#0033cc' : '#cc0000';
+                return `<div style="margin-bottom:8px; font-family:'Gulim'; font-size:12px; color:black;"><b style="color:${nameColor};">${chat.sender}</b> 말:<br><span style="color:#333;">${chat.text}</span></div>`;
+            }).join('');
+            popup.innerHTML = `
+                <div class="xp-title-bar drag-handle" style="background: #2b2b2b; height: 40px;">
+                    <div style="display:flex; align-items:center; gap:8px; font-size:14px;">💬 JIKAN</div>
+                    <div class="xp-close-btn" style="background:transparent; border:none; font-size:14px; box-shadow:none; color:white;" onclick="document.getElementById('messengerWindow').remove()">✕</div>
+                </div>
+                <div style="background:#c0c0c0; padding:2px 5px; font-size:11px; color:black; border-bottom:1px solid #808080; font-family:'Gulim';">파일(F) 편집(E) 보기(V) 도움말(H)</div>
+                <div id="messengerScroll" style="flex:1; overflow-y:auto; padding:15px; display:flex; flex-direction:column; background:#b2c7d9;">${chatHTML}</div>
+                <div style="background:white; padding:10px; display:flex; gap:10px; border-top:1px solid #ccc;">
+                    <textarea id="msgInput" style="flex:1; border:none; outline:none; resize:none; font-family:'NeoDunggeunmo'; font-size:13px; height:40px; color:black;" placeholder="메시지를 입력하세요..."></textarea>
+                    <button class="xp-btn" onclick="window.sendMsg()" style="background:#fae100; border:1px solid #e3cb00; font-weight:bold; box-shadow:none;">전송</button>
+                </div>
+            `;
+            document.body.appendChild(popup);
+            window.makeResizable(popup);
+            document.getElementById('messengerScroll').scrollTop = document.getElementById('messengerScroll').scrollHeight;
+            document.getElementById('msgInput').addEventListener('keypress', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); window.sendMsg(); } });
+        };
+
+        window.sendMsg = function() {
+            const input = document.getElementById('msgInput'); const txt = input.value.trim(); if(!txt) return;
+            const scroll = document.getElementById('messengerScroll');
+            const bub = `<div class="bubble-container"><div class="kakao-bubble" style="font-size:13px; padding:8px 12px; box-shadow:none;">${txt}</div></div>`;
+            const prof = `<div class="profile-box"><div class="profile-img" style="width:35px;height:35px;"><img src="${window.config.profiles.jiuin}"></div><span class="profile-name" style="font-size:0.6rem; color:#444;">나</span></div>`;
+            const item = document.createElement('div'); item.className = 'chat-item right'; item.style.marginBottom = '12px'; item.innerHTML = bub + prof;
+            scroll.appendChild(item); input.value = ''; scroll.scrollTop = scroll.scrollHeight;
+            setTimeout(() => {
+                const msgs = ["지금은 연락을 받을 수 없다.", "뭐", "나중에 해", "바빠", "..."];
+                const randomMsg = msgs[Math.floor(Math.random() * msgs.length)];
+                const replyBub = `<div class="bubble-container"><div class="kakao-bubble" style="font-size:13px; padding:8px 12px; box-shadow:none;">${randomMsg}</div></div>`;
+                const replyProf = `<div class="profile-box"><div class="profile-img" style="width:35px;height:35px;"><img src="${window.config.profiles.jikan}"></div><span class="profile-name" style="font-size:0.6rem; color:#444;">지칸</span></div>`;
+                const replyItem = document.createElement('div'); replyItem.className = 'chat-item left'; replyItem.style.marginBottom = '12px'; replyItem.innerHTML = replyProf + replyBub;
+                if(document.getElementById('messengerScroll')) { document.getElementById('messengerScroll').appendChild(replyItem); document.getElementById('messengerScroll').scrollTop = document.getElementById('messengerScroll').scrollHeight; }
+            }, 2000);
+        };
+
+        // 🌟 파일 & 드래그 앤 드롭 로직
         window.loadFilesFromFirebase = async function() {
             const querySnapshot = await window.getDocs(window.collection(window.db, "files"));
             querySnapshot.forEach((d) => {
@@ -489,7 +484,7 @@
             files.forEach((file) => {
                 const icon = document.createElement('div'); icon.className = 'file-icon';
                 
-                // 🌟 드래그 앤 드롭 파일 이동 기능
+                // 🌟 드래그 앤 드롭 구현
                 icon.setAttribute('draggable', 'true');
                 icon.ondragstart = (e) => { e.dataTransfer.setData('text/plain', file.docId); e.stopPropagation(); };
 
@@ -502,7 +497,7 @@
                         if(draggedDocId && draggedDocId !== file.docId) { await window.moveFileToFolder(draggedDocId, file.id); }
                     };
                 }
-                
+
                 let imgHTML = `<img src="https://win98icons.alexmeub.com/icons/png/notepad-0.png" width="48" height="48">`;
                 if(file.type === 'folder' || folderId === 'folder-photos') imgHTML = `<img src="https://win98icons.alexmeub.com/icons/png/directory_closed-0.png" width="48" height="48">`;
                 if(file.type === 'img') {
@@ -517,16 +512,22 @@
             });
         };
 
+        // 🌟 드래그된 파일을 폴더 안으로 이동시키는 함수 (오류 해결 완료)
         window.moveFileToFolder = async function(docId, targetFolderId) {
             const fileObj = window.findFileByDocId(docId);
-            if(!fileObj || !docId.startsWith('doc-')) return;
+            if(!fileObj) return; 
+            
             const prevFolder = fileObj.folder;
             window.config.folders[prevFolder] = window.config.folders[prevFolder].filter(f => f.docId !== docId);
             fileObj.folder = targetFolderId;
+            
             if(!window.config.folders[targetFolderId]) window.config.folders[targetFolderId] = [];
             window.config.folders[targetFolderId].push(fileObj);
+            
             window.renderFiles(window.currentActiveFolder);
-            try { await window.updateDoc(window.doc(window.db, "files", docId), { folder: targetFolderId }); } catch(e) {}
+            try { 
+                if(docId && !docId.startsWith('doc-')) { await window.updateDoc(window.doc(window.db, "files", docId), { folder: targetFolderId }); }
+            } catch(e) {}
         };
 
         window.openExplorer = function(folderId, title) {
@@ -570,13 +571,18 @@
 
         window.triggerAddFile = async function() {
             const isPhotoFolder = window.folderHistory.length > 0 && window.folderHistory[0].id === 'folder-photos';
-            const defaultTitle = isPhotoFolder ? "새 이미지.jpg" : "새 역극.log";
-            const newData = isPhotoFolder ? { type:'img', title: defaultTitle, url:'', folder: window.currentActiveFolder, createdAt: Date.now() } : { type:'txt', title: defaultTitle, content:'', folder: window.currentActiveFolder, createdAt: Date.now() };
+            const newData = isPhotoFolder 
+                ? { type:'img', title: "새 이미지.jpg", url:'', folder: window.currentActiveFolder } 
+                : { type:'txt', title: "새 역극.log", content:'', folder: window.currentActiveFolder };
             try {
-                const docRef = await window.addDoc(window.collection(window.db, "files"), newData); newData.docId = docRef.id;
-                if(!window.config.folders[window.currentActiveFolder]) window.config.folders[window.currentActiveFolder] = [];
-                window.config.folders[window.currentActiveFolder].push(newData); window.renderFiles(window.currentActiveFolder);
-            } catch(e) {}
+                const docRef = await window.addDoc(window.collection(window.db, "files"), newData); 
+                newData.docId = docRef.id;
+            } catch(e) { 
+                newData.docId = 'doc-' + Date.now(); 
+            }
+            if(!window.config.folders[window.currentActiveFolder]) window.config.folders[window.currentActiveFolder] = [];
+            window.config.folders[window.currentActiveFolder].push(newData); 
+            window.renderFiles(window.currentActiveFolder);
         };
 
         window.deleteSelectedItem = async function() {
@@ -607,64 +613,130 @@
             if(selectedEl) window.inlineRename(window.selectedFile, selectedEl);
         };
 
-        // 🌟 로그 데이터를 예쁘게 뿌려주는 파싱 함수 (이름 상단, 내용 하단, 바탕체 적용)
+        // ✅ 로그 → 카톡 말풍선 HTML (지칸=왼쪽흰, 지우인=오른쪽노랑)
         window.parseLogTextToHTML = function(content) {
             if(!content) return '아직 기록이 없습니다.';
             const logBlocks = content.split('\n\n').filter(b => b.trim());
             let html = ''; let lastDate = '';
 
             logBlocks.forEach(block => {
-                const match = block.match(/^\[(.*?)\s.*?\]\s(.*?)\s:\s([\s\S]*)$/);
+                // [날짜 시간] 이름 : 내용  또는  [알수없음] 이름 : 내용
+                const match = block.match(/^\[([^\]]*)\]\s*(.+?)\s*:\s*([\s\S]*)$/);
                 if(match) {
-                    const dateOnly = match[1]; const name = match[2]; const text = match[3];
+                    const bracket = match[1].trim();
+                    const name    = match[2].trim();
+                    const text    = match[3].trim();
 
-                    if (dateOnly !== lastDate) {
-                        html += `<div style="text-align:center; margin: 20px 0; border-bottom: 1px dashed #ccc; line-height: 0.1em;"><span style="background:#fff; padding:0 10px; color:#888; font-size:11px; font-family:'Gulim';">${dateOnly}</span></div>`;
-                        lastDate = dateOnly;
+                    const dtMatch = bracket.match(/^(\d{4}\.\d{2}\.\d{2}\.?)\s+(\d{2}:\d{2})$/);
+                    const fullDate = dtMatch ? dtMatch[1].replace(/\.$/, '') : '';
+                    const time     = dtMatch ? dtMatch[2] : '';
+
+                    if (fullDate && fullDate !== lastDate) {
+                        html += `<div style="text-align:center;margin:20px 0;"><span style="background:#f0f0f0;padding:3px 12px;border-radius:20px;color:#888;font-size:11px;font-family:'Gulim';">${fullDate}</span></div>`;
+                        lastDate = fullDate;
                     }
 
-                    const side = name === '지칸' ? 'left' : 'right';
-                    const profileImg = name === '지칸' ? window.config.profiles.jikan : window.config.profiles.jiuin;
-                    
+                    const isRight = (name === '지우인');
+                    const profileImg = name === '지칸' ? window.config.profiles.jikan
+                                     : name === '지우인' ? window.config.profiles.jiuin
+                                     : window.config.profiles.jikan;
+
                     html += `
-                    <div style="display:flex; align-items:flex-start; margin-bottom:15px; ${side === 'right' ? 'flex-direction:row-reverse;' : ''}">
-                        <img src="${profileImg}" style="width:40px; height:40px; border-radius:14px; margin: 0 10px; border:1px solid #ddd; object-fit:cover;">
-                        <div style="display:flex; flex-direction:column; max-width:75%; ${side === 'right' ? 'align-items:flex-end;' : 'align-items:flex-start;'}">
-                            <div style="font-size:12px; color:#555; margin-bottom:4px; font-family:'Gulim', sans-serif;"><b>${name}</b></div>
-                            <div style="background:${side === 'right' ? '#fae100' : '#f5f5f5'}; padding:10px 14px; border-radius:8px; font-size:14px; color:#111; word-break:break-all; box-shadow: 1px 1px 3px rgba(0,0,0,0.1);">
-                                ${text.replace(/\n/g, '<br>')}
+                    <div style="display:flex;align-items:flex-start;margin-bottom:16px;flex-direction:${isRight?'row-reverse':'row'};">
+                        <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;${isRight?'margin-left:8px;':'margin-right:8px;'}">
+                            <img src="${profileImg}" style="width:42px;height:42px;border-radius:14px;border:1px solid #ddd;object-fit:cover;">
+                            <span style="font-size:10px;color:#666;margin-top:3px;font-family:'Gulim';font-weight:bold;">${name}</span>
+                        </div>
+                        <div style="display:flex;flex-direction:column;max-width:68%;align-items:${isRight?'flex-end':'flex-start'};">
+                            <div style="background:${isRight?'#fae100':'#f5f5f5'};padding:10px 14px;border-radius:${isRight?'14px 2px 14px 14px':'2px 14px 14px 14px'};font-size:13px;color:#111;word-break:break-word;box-shadow:1px 1px 4px rgba(0,0,0,0.1);font-family:'Batang','BatangChe',serif;line-height:1.65;">
+                                ${text.replace(/\n/g,'<br>')}
                             </div>
+                            ${time?`<span style="font-size:10px;color:#bbb;margin-top:3px;font-family:'Gulim';">${time}</span>`:''}
                         </div>
                     </div>`;
-                } else { html += `<div style="margin-bottom:10px;">${block.replace(/\n/g, '<br>')}</div>`; }
+                } else {
+                    html += `<div style="margin-bottom:8px;font-family:'Gulim';font-size:11px;color:#ccc;">${block.replace(/\n/g,'<br>')}</div>`;
+                }
             });
             return html;
         };
 
-        // 🌟 복붙한 텍스트를 [YYYY.MM.DD HH:mm] 이름 : 내용 형태로 변환하는 함수
+        // ✅ 카페 댓글 자동변환 (프로필\n닉네임(작성자)\n내용 양식)
         window.formatRawToStandard = function(rawText) {
-            const lines = rawText.split('\n').map(l => l.trim()).filter(l => l);
-            let standardLogs = []; let currentMsg = null;
+            if (!rawText || !rawText.trim()) return '';
 
-            lines.forEach(line => {
-                const nameMatch = line.replace('작성자', '').trim();
-                if(nameMatch === '지칸' || nameMatch === '지우인') {
-                    if (currentMsg) standardLogs.push(currentMsg);
-                    currentMsg = { name: nameMatch, date: '', text: [] }; return;
+            const lines = rawText.split('\n').map(l => l.trim());
+            const results = [];
+
+            // 첫 줄이 이미 [날짜] 이름 : 내용 포맷이면 그대로 반환
+            if (lines[0].match(/^\[\d{4}/)) return rawText;
+
+            // 닉네임으로 인식할 패턴: 한글/영문 2~15자, 끝에 '작성자' 붙을 수도 있음
+            // '프로필', 날짜패턴, '답글', '수정|삭제' 등은 제외
+            const skipWords = new Set(['프로필', '답글', '수정', '삭제', '수정|삭제', '좋아요', '신고']);
+            const isDateLine = l => /\d{4}\.\d{2}\.\d{2}/.test(l);
+            const isSkip = l => skipWords.has(l) || isDateLine(l) || l === '';
+            const isName = l => {
+                const clean = l.replace('작성자', '').trim();
+                return !isSkip(clean) && /^[가-힣a-zA-Z0-9_]{2,15}$/.test(clean);
+            };
+
+            let i = 0;
+            while (i < lines.length) {
+                const line = lines[i];
+
+                // '프로필' 라인 → 다음 줄이 닉네임일 신호
+                if (line === '프로필') {
+                    i++;
+                    if (i >= lines.length) break;
+
+                    const nameLine = lines[i];
+                    if (!isName(nameLine)) { i++; continue; }
+
+                    const name = nameLine.replace('작성자', '').trim();
+                    i++;
+
+                    // 날짜/답글/수정|삭제 스킵
+                    while (i < lines.length && isSkip(lines[i])) i++;
+
+                    // 내용 수집: 다음 '프로필' 또는 끝까지
+                    const contentLines = [];
+                    while (i < lines.length && lines[i] !== '프로필') {
+                        const l = lines[i];
+                        if (!isSkip(l)) {
+                            // 본문 앞 상대방 이름 태그 제거: "지우인 (내용)" → "(내용)"
+                            let text = l;
+                            const tagMatch = text.match(/^([가-힣a-zA-Z]{2,10})\s+(.+)$/);
+                            if (tagMatch && tagMatch[1] !== name && !isDateLine(tagMatch[1])) {
+                                text = tagMatch[2].trim();
+                            }
+                            contentLines.push(text);
+                        }
+                        i++;
+                    }
+
+                    if (contentLines.length > 0) {
+                        results.push({ name, text: contentLines.join('\n') });
+                    }
+                } else {
+                    i++;
                 }
-                if (currentMsg && /^\d{4}\.\d{2}\.\d{2}\.\s\d{2}:\d{2}$/.test(line)) { currentMsg.date = line; } 
-                else if (line === '답글' || line === '수정|삭제' || line === '수정' || line === '삭제') { /* 스킵 */ } 
-                else if (currentMsg) {
-                    let txt = line; const otherName = currentMsg.name === '지칸' ? '지우인' : '지칸';
-                    if (txt.startsWith(otherName + ' ')) txt = txt.substring(otherName.length + 1).trim();
-                    currentMsg.text.push(txt);
-                }
-            });
-            if (currentMsg) standardLogs.push(currentMsg);
-            return standardLogs.map(log => `[${log.date}] ${log.name} : ${log.text.join(' ')}`).join('\n\n');
+            }
+
+            // 날짜가 없을 때는 '알수없음' 대신 그냥 비워서 포맷
+            if (results.length === 0) return rawText;
+
+            // 날짜 추출 시도 (원문에서)
+            const globalDate = rawText.match(/(\d{4}\.\d{2}\.\d{2})/);
+            const globalTime = rawText.match(/(\d{2}:\d{2})/);
+            const dateStr = globalDate ? globalDate[1] : '';
+            const timeStr = globalTime ? globalTime[1] : '';
+            const bracket = dateStr && timeStr ? `${dateStr} ${timeStr}` : (dateStr || '날짜미상');
+
+            return results.map(r => `[${bracket}] ${r.name} : ${r.text}`).join('\n\n');
         };
 
-        // 🌟 파일 뷰어 창 (로그 아카이브 UI 및 이미지)
+        // 🌟 뷰어 UI (무한으로 늘어나는 버그 min-height: 0 으로 완전 해결)
         window.viewDetail = function(file) {
             document.getElementById('clickSound').play().catch(()=>{});
             let contentHTML = ''; let iconSrc = 'https://win98icons.alexmeub.com/icons/png/notepad-0.png';
@@ -673,17 +745,17 @@
             if(file.type === 'txt') {
                 const parsedHTML = window.parseLogTextToHTML(file.content);
                 contentHTML = `
-                    <div style="display:flex; flex-direction:column; height:100%; background:#ece9d8;">
-                        <div class="xp-menubar" style="background:#c0c0c0; border-bottom:1px solid #808080; padding:4px 5px; font-weight:bold; font-family:'Gulim';">
-                            <img src="https://win98icons.alexmeub.com/icons/png/write_wordpad-0.png" style="width:14px; vertical-align:middle; margin-right:5px;"> 
-                            아카이브 뷰어 v2.0
+                    <div style="display:flex; flex-direction:column; height:100%; background:#ece9d8; min-height:0;">
+                        <div class="xp-menubar" style="background:#c0c0c0; border-bottom:1px solid #808080; padding:4px 5px; font-weight:bold; font-family:'Gulim'; display:flex; justify-content:space-between;">
+                            <div><img src="https://win98icons.alexmeub.com/icons/png/write_wordpad-0.png" style="width:14px; vertical-align:middle; margin-right:5px;"> 아카이브 뷰어 v2.0</div>
+                            <span style="cursor:pointer; color:blue;" onclick="window.editRawLog('${file.docId}', '${popupId}')">[원문 편집]</span>
                         </div>
                         
-                        <div id="logScroll" style="flex:6; padding:15px; background:white; color:black; font-family:'Batang', 'BatangChe', serif; font-size:13px; overflow-y:auto; border-bottom:2px solid #808080; line-height:1.6;">${parsedHTML}</div>
+                        <div id="logScroll-${popupId}" data-editing="false" style="flex:6; padding:15px; background:white; color:black; overflow-y:auto; border-bottom:2px solid #808080; line-height:1.6; min-height:0;">${parsedHTML}</div>
                         
-                        <div style="flex:4; display:flex; flex-direction:column; padding:10px; background:#c0c0c0;">
+                        <div style="flex:4; display:flex; flex-direction:column; padding:10px; background:#c0c0c0; min-height:0;">
                             <div style="font-size:11px; color:#333; margin-bottom:5px; font-family:'Gulim';">↓ 이곳에 복사한 댓글을 붙여넣으세요</div>
-                            <textarea id="paste-${popupId}" style="flex:1; padding:8px; border:2px inset #fff; outline:none; font-family:'Gulim'; font-size:12px; resize:none; color:black; background:#fff;"></textarea>
+                            <textarea id="paste-${popupId}" style="flex:1; padding:8px; border:2px inset #fff; outline:none; font-family:'Gulim'; font-size:12px; resize:none; color:black; background:#fff; min-height:0;"></textarea>
                             <div style="text-align:right; margin-top:8px;">
                                 <button class="xp-btn" onclick="window.appendAndSaveLog('${file.docId}', '${popupId}')">자동 변환 & 추가</button>
                             </div>
@@ -695,7 +767,7 @@
                     contentHTML = `
                         <div id="img-body-${popupId}" style="padding:20px; background:#c0c0c0; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; color:black;">
                             <img src="https://win98icons.alexmeub.com/icons/png/image_file-0.png" style="width:48px; margin-bottom:10px;">
-                            <p style="font-size:12px; margin-bottom:10px; font-family:'Gulim';">이 이미지 파일은 비어있습니다.<br>업로드할 이미지의 URL을 입력하세요.</p>
+                            <p style="font-size:12px; margin-bottom:10px; font-family:'Gulim';">이미지 파일이 비어있습니다.<br>업로드할 URL을 입력하세요.</p>
                             <input type="text" id="url-${popupId}" style="width:80%; padding:3px; margin-bottom:15px; border: 2px inset #fff; font-family:'Gulim';" placeholder="https://...">
                             <button class="xp-btn" onclick="window.saveImgUrl('${file.docId}', '${popupId}')">확인(업로드)</button>
                         </div>`;
@@ -714,23 +786,39 @@
 
             const popup = document.createElement('div');
             popup.className = 'xp-window draggable'; popup.id = popupId;
-            popup.style.cssText = `top: ${Math.random()*50 + 100}px; left: ${Math.random()*50 + 200}px; width: 450px; height: 500px; position: absolute; z-index: 1000;`;
+            popup.style.cssText = `top: ${Math.random()*50 + 100}px; left: ${Math.random()*50 + 200}px; width: 450px; height: 520px; position: absolute; z-index: 1000; overflow:visible;`;
             popup.innerHTML = `
                 <div class="xp-title-bar drag-handle">
                     <div style="display:flex; align-items:center; gap:8px;"><img src="${iconSrc}" style="width:16px;"><span>${file.title}</span></div>
                     <div class="xp-close-btn" onclick="document.getElementById('${popupId}').remove()">✕</div>
                 </div>
-                <div style="flex:1; background:#c0c0c0; border:2px inset #fff; display:flex; flex-direction:column;">${contentHTML}</div>
+                <div style="flex:1; background:#c0c0c0; border:2px inset #fff; display:flex; flex-direction:column; min-height:0; overflow:hidden;">${contentHTML}</div>
             `;
             document.body.appendChild(popup);
+            window.makeResizable(popup);
         };
 
-        // 🌟 로그 추가 및 저장
+        window.editRawLog = function(docId, popupId) {
+            const f = window.findFileByDocId(docId); if(!f) return;
+            const scroll = document.getElementById(`logScroll-${popupId}`);
+            
+            if(scroll.dataset.editing === 'true') {
+                const ta = document.getElementById(`rawEdit-${popupId}`);
+                f.content = ta.value;
+                if(docId && !docId.startsWith('doc-')) { window.updateDoc(window.doc(window.db, "files", docId), { content: f.content }).catch(()=>{}); }
+                scroll.innerHTML = window.parseLogTextToHTML(f.content);
+                scroll.dataset.editing = 'false';
+            } else {
+                scroll.innerHTML = `<textarea id="rawEdit-${popupId}" style="width:100%; height:100%; border:none; resize:none; font-family:'Gulim'; font-size:12px; outline:none; padding:10px; box-sizing:border-box;">${f.content || ''}</textarea>`;
+                scroll.dataset.editing = 'true';
+            }
+        };
+
         window.appendAndSaveLog = async function(docId, popupId) {
             const pasteArea = document.getElementById(`paste-${popupId}`);
-            const logArea = document.getElementById('logScroll');
-            const rawData = pasteArea.value.trim();
-            if(!rawData) return;
+            const logArea = document.getElementById(`logScroll-${popupId}`);
+            if(!pasteArea || !logArea) return;
+            const rawData = pasteArea.value.trim(); if(!rawData) return;
 
             const standardText = window.formatRawToStandard(rawData);
             const f = window.findFileByDocId(docId);
@@ -791,6 +879,26 @@
                     activeEl.dataset.x = curX; activeEl.dataset.y = curY; activeEl.style.transform = `translate3d(${curX}px, ${curY}px, 0)`; }
             });
             document.addEventListener("mouseup", () => { activeEl = null; });
+        };
+
+        // 🪟 우하단 드래그 리사이즈
+        window.makeResizable = function(el) {
+            const handle = document.createElement('div');
+            handle.style.cssText = `position:absolute;right:0;bottom:0;width:14px;height:14px;cursor:se-resize;z-index:9999;
+                background:linear-gradient(135deg,transparent 40%,#808080 40%,#808080 50%,transparent 50%,transparent 65%,#808080 65%,#808080 75%,transparent 75%);`;
+            el.appendChild(handle);
+            let sx, sy, sw, sh;
+            handle.addEventListener('mousedown', e => {
+                e.stopPropagation(); e.preventDefault();
+                sx=e.clientX; sy=e.clientY; sw=el.offsetWidth; sh=el.offsetHeight;
+                const onMove = e => {
+                    el.style.width  = Math.max(300, sw+(e.clientX-sx))+'px';
+                    el.style.height = Math.max(200, sh+(e.clientY-sy))+'px';
+                };
+                const onUp = () => { document.removeEventListener('mousemove',onMove); document.removeEventListener('mouseup',onUp); };
+                document.addEventListener('mousemove',onMove);
+                document.addEventListener('mouseup',onUp);
+            });
         };
     </script>
 </body>
