@@ -1126,29 +1126,41 @@
             body.innerHTML='<div style="color:#aaa;font-size:11px;font-family:Gulim;text-align:center;padding-top:30px;">생성 중...</div>';
             const apiKey=localStorage.getItem('gemApiKey')||'';
             if(!apiKey){body.innerHTML='<div style="color:#f88;font-size:11px;font-family:Gulim;text-align:center;padding:20px;">하단 API키 입력창에<br>Gemini API키를 입력하세요.<br><br>aistudio.google.com에서<br>무료로 발급받을 수 있어요.</div>';return;}
-            try{
-                // gemini-1.5-flash-latest: 무료 티어에서 안정적
-                const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
-                const res=await fetch(url,{
-                    method:'POST',headers:{'Content-Type':'application/json'},
-                    body:JSON.stringify({
-                        contents:[{parts:[{text:`두 캐릭터가 오늘(${new Date().toLocaleDateString('ko-KR')}) 짧게 한마디씩.
+
+            const prompt=`두 캐릭터가 오늘(${new Date().toLocaleDateString('ko-KR')}) 짧게 한마디씩.
 지칸: 냉소적, 말 짧고 툭툭 내뱉음, 속마음 따뜻하지만 절대 티 안 냄.
 지우인: 능글맞고 여유로움, 장난기 있음, 다정함이 묻어남.
 JSON 배열만 반환(다른 텍스트 없이):
-[{"name":"지칸","msg":"..."},{"name":"지우인","msg":"..."}]`}]}],
-                        generationConfig:{temperature:0.95,maxOutputTokens:200}
-                    })
-                });
-                const data=await res.json();
-                if(data.error)throw new Error(data.error.message);
-                const raw=data.candidates[0].content.parts[0].text.replace(/```json|```/g,'').trim();
-                const msgs=JSON.parse(raw);
-                localStorage.setItem('dailyMsg_'+today,JSON.stringify(msgs));
-                window._renderDaily(msgs);
-            }catch(err){
-                body.innerHTML=`<div style="color:#f88;font-size:11px;font-family:Gulim;text-align:center;padding:20px;">오류: ${err.message}<br><br>API 키를 확인하거나 새로고침해보세요.</div>`;
+[{"name":"지칸","msg":"..."},{"name":"지우인","msg":"..."}]`;
+
+            // v1beta + v1 둘 다, 여러 모델 순서대로 시도
+            const endpoints=[
+                `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+                `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent?key=${apiKey}`,
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`,
+            ];
+
+            let lastErr='';
+            for(const url of endpoints){
+                try{
+                    const res=await fetch(url,{
+                        method:'POST',headers:{'Content-Type':'application/json'},
+                        body:JSON.stringify({
+                            contents:[{parts:[{text:prompt}]}],
+                            generationConfig:{temperature:0.95,maxOutputTokens:200}
+                        })
+                    });
+                    const data=await res.json();
+                    if(data.error){lastErr=`[${url.match(/models\/(.+?):/)&&url.match(/models\/(.+?):/)[1]}] ${data.error.message}`;continue;}
+                    const raw=data.candidates[0].content.parts[0].text.replace(/```json|```/g,'').trim();
+                    const msgs=JSON.parse(raw);
+                    localStorage.setItem('dailyMsg_'+today,JSON.stringify(msgs));
+                    window._renderDaily(msgs);
+                    return;
+                }catch(e){lastErr=e.message;}
             }
+            body.innerHTML=`<div style="color:#f88;font-size:11px;font-family:Gulim;text-align:center;padding:20px;">오류: ${lastErr}<br><br>API 키를 확인해주세요.<br>aistudio.google.com에서<br>새 키를 발급받아 입력하세요.</div>`;
         };
 
         window._renderDaily=function(msgs){
