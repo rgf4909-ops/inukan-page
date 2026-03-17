@@ -6,108 +6,166 @@
     <title>JIKAN-UIN ARCHIVE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/neodgm/neodgm-webfont@1.530/neodgm/style.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap');
-
         :root {
             --bg-color: #080808; --kakao-yellow: #fae100; --kakao-dark: #2a2a2a;
-            --xp-blue: linear-gradient(to bottom, #0058e4 0%, #3b8df5 10%, #0058e4 100%);
-            --wmp-bg: #d4d0c8; --wmp-border: #808080;
+            --wmp-bg: #c0c0c0; --wmp-border: #808080;
         }
 
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: var(--bg-color); color: #eee; font-family: 'Tahoma', 'Noto Sans KR', 'Gulim', sans-serif; overflow: hidden; user-select: none; }
+        /* 🌟 전체 폰트 둥근모꼴 적용 & 커서 변경 */
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: var(--bg-color); color: #eee; font-family: 'NeoDunggeunmo', 'Gulim', sans-serif; overflow: hidden; user-select: none; cursor: url('https://win98icons.alexmeub.com/cursors/arrow.cur'), auto; }
+        a, button, [onclick], .cursor-pointer, .drag-handle, .icon-item, .file-icon, .xp-btn, .wmp-btn, .start-menu-item { cursor: url('https://win98icons.alexmeub.com/cursors/pointer.cur'), pointer !important; }
+
         body::before { content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: url('https://grainy-gradients.vercel.app/noise.svg'); opacity: 0.08; pointer-events: none; z-index: 9999; }
         .vignette { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, transparent 60%, rgba(0,0,0,0.6) 100%); pointer-events: none; z-index: 9998; }
         
+        /* 🌟 눈 편안한 다크 글리치 효과 */
+        body::after { content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; background: rgba(0,0,0,0.5); background-image: url('https://grainy-gradients.vercel.app/noise.svg'); opacity: 0; transition: opacity 0.5s ease; }
+        .glitch-active::after { opacity: 1; animation: slowGlitch 0.3s 2 alternate; }
+        @keyframes slowGlitch { 0% { transform: translateY(0); } 50% { transform: translateY(2px); } 100% { transform: translateY(0); } }
+
         .bg-container { position: fixed; top: 0; right: 0; width: 75%; height: 100%; z-index: 1; }
         .bg-image { width: 100%; height: 100%; object-fit: cover; filter: brightness(0.85); }
         .fade-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to right, #080808 0%, #080808 20%, transparent 80%); z-index: 2; }
 
-        /* 대각선 카톡 루프 복구 */
+        /* 대각선 카톡 루프 */
         .chat-stream { position: fixed; top: -45%; left: -5%; width: 55%; height: 200%; transform: rotate(25deg); z-index: 3; overflow: hidden; pointer-events: none; mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent); }
         .chat-track { display: flex; flex-direction: column; gap: 50px; padding: 150px; animation: scrollUp 180s linear infinite; }
         @keyframes scrollUp { 0% { transform: translateY(0); } 100% { transform: translateY(-50%); } }
         .date-line { text-align: center; margin: 20px 0; }
-        .date-line span { background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; color: #ccc; }
+        .date-line span { background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; color: #ccc; font-family: 'Gulim'; }
         .chat-item { display: flex; width: 100%; align-items: flex-start; }
         .chat-item.left { justify-content: flex-start; }
         .chat-item.right { justify-content: flex-end; }
         .profile-box { display: flex; flex-direction: column; align-items: center; gap: 5px; }
         .profile-img { width: 45px; height: 45px; border-radius: 18px; background: #111; overflow: hidden; border: 1px solid #333; }
         .profile-img img { width: 100%; height: 100%; object-fit: cover; }
-        .profile-name { font-size: 0.7rem; color: #666; }
+        .profile-name { font-size: 0.7rem; color: #666; font-family: 'Gulim'; }
         .bubble-container { max-width: 65%; margin: 0 12px; }
-        .kakao-bubble { padding: 10px 14px; border-radius: 14px; font-size: 0.95rem; line-height: 1.4; box-shadow: 2px 2px 8px rgba(0,0,0,0.4); }
-        .left .kakao-bubble { background: var(--kakao-dark); color: #ccc; border-top-left-radius: 2px; }
-        .right .kakao-bubble { background: var(--kakao-yellow); color: #111; border-top-right-radius: 2px; }
+        .kakao-bubble { padding: 10px 14px; border-radius: 14px; font-size: 0.95rem; line-height: 1.4; box-shadow: 2px 2px 8px rgba(0,0,0,0.4); color: black; font-family: 'Gulim'; }
+        .left .kakao-bubble { background: white; border-top-left-radius: 2px; }
+        .right .kakao-bubble { background: var(--kakao-yellow); border-top-right-radius: 2px; }
 
-        /* 공통 윈도우 스타일 */
+        /* 공통 창 스타일 (윈도우 98) */
         .draggable { position: absolute; }
-        .xp-window { background: #ece9d8; border: 3px solid #0054e3; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; box-shadow: 10px 10px 30px rgba(0,0,0,0.5); z-index: 100; }
-        .xp-title-bar { background: var(--xp-blue); height: 30px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; color: white; font-weight: bold; font-size: 0.85rem; cursor: move; }
-        .xp-close-btn { width: 21px; height: 21px; background: #e91e63; border: 1px solid white; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 11px; cursor: pointer; }
+        .xp-window { background: #c0c0c0; border-top: 2px solid #fff; border-left: 2px solid #fff; border-right: 2px solid #000; border-bottom: 2px solid #000; display: flex; flex-direction: column; box-shadow: inset 1px 1px #dfdfdf, inset -1px -1px #808080, 5px 5px 15px rgba(0,0,0,0.5); z-index: 100; }
+        .xp-title-bar { background: linear-gradient(to right, #000080, #1084d0); height: 22px; display: flex; align-items: center; justify-content: space-between; padding: 0 3px; color: white; font-weight: bold; font-size: 11px; cursor: move; }
+        .xp-close-btn { width: 16px; height: 16px; background: #c0c0c0; border-top: 1px solid #fff; border-left: 1px solid #fff; border-right: 1px solid #000; border-bottom: 1px solid #000; display: flex; align-items: center; justify-content: center; font-size: 10px; color: black; font-weight: bold; box-shadow: inset 1px 1px #dfdfdf, inset -1px -1px #808080; cursor: pointer; }
+        .xp-close-btn:active { border-top: 1px solid #000; border-left: 1px solid #000; border-right: 1px solid #fff; border-bottom: 1px solid #fff; box-shadow: inset 1px 1px #808080, inset -1px -1px #dfdfdf; padding: 1px 0 0 1px; }
 
-        /* WMP 플레이어 */
-        .wmp-player { position: fixed; bottom: 30px; right: 30px; width: 320px; height: 480px; background: var(--wmp-bg); border: 2px solid #808080; z-index: 1000; display: flex; flex-direction: column; }
-        .wmp-title { background: linear-gradient(to right, #000080, #1084d0); height: 22px; padding: 0 5px; display: flex; align-items: center; color: white; font-size: 0.75rem; font-weight: bold; gap: 5px; cursor: move; }
+        /* 바탕화면 아이콘 */
+        .desktop-icons { position: fixed; top: 40px; left: 40px; display: flex; flex-direction: column; gap: 30px; z-index: 10; }
+        .icon-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; width: 70px; }
+        .icon-img { width: 45px; height: 45px; margin-bottom: 5px; filter: drop-shadow(2px 2px 2px black); }
+        .icon-label { font-size: 0.85rem; color: white; text-shadow: 1px 1px 3px black; text-align: center; }
+
+        /* WMP 플레이어 윈도우 98 스타일 */
+        .wmp-player { position: fixed; bottom: 40px; right: 30px; width: 320px; height: 480px; background: #c0c0c0; border-top: 2px solid #fff; border-left: 2px solid #fff; border-right: 2px solid #000; border-bottom: 2px solid #000; z-index: 1000; display: flex; flex-direction: column; box-shadow: inset 1px 1px #dfdfdf, inset -1px -1px #808080; }
+        .wmp-title { background: linear-gradient(to right, #000080, #1084d0); height: 22px; padding: 0 3px; display: flex; align-items: center; color: white; font-size: 11px; font-weight: bold; gap: 5px; cursor: move; }
         .wmp-menu { color: black; font-size: 11px; padding: 2px 5px; }
         .wmp-screen { flex: 1; background: black; margin: 5px; border: 2px inset #808080; position: relative; overflow: hidden; }
         .album-cover { width: 100%; height: 200px; object-fit: cover; }
         .wmp-info-panel { height: 120px; background: black; color: #00ff00; font-family: 'Gulim', monospace; font-size: 0.7rem; padding: 10px; border-top: 1px solid #444; line-height: 1.6; }
         .wmp-buttons { display: flex; gap: 5px; margin: 5px; }
-        .wmp-btn { background: #ece9d8; border: 2px outset #fff; width: 30px; height: 25px; display: flex; align-items: center; justify-content: center; color: black; cursor: pointer; }
-        .wmp-btn:active { border-style: inset; }
-
-        /* 바탕화면 아이콘 */
-        .desktop-icons { position: fixed; bottom: 40px; left: 50px; display: flex; gap: 40px; z-index: 10; }
-        .icon-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; }
-        .icon-img { width: 55px; height: 55px; margin-bottom: 8px; filter: drop-shadow(2px 2px 2px black); }
-        .icon-label { font-size: 0.85rem; color: white; text-shadow: 2px 2px 4px black; }
+        .wmp-btn { background: #c0c0c0; border-top: 1px solid #fff; border-left: 1px solid #fff; border-right: 1px solid #000; border-bottom: 1px solid #000; width: 30px; height: 25px; display: flex; align-items: center; justify-content: center; color: black; cursor: pointer; box-shadow: inset 1px 1px #dfdfdf, inset -1px -1px #808080; }
+        .wmp-btn:active { border-top: 1px solid #000; border-left: 1px solid #000; border-right: 1px solid #fff; border-bottom: 1px solid #fff; box-shadow: inset 1px 1px #808080, inset -1px -1px #dfdfdf; padding: 1px 0 0 1px; }
 
         /* 탐색기 */
-        #xpExplorer { top: 80px; left: 20%; width: 900px; height: 650px; display: none; }
-        .xp-menubar { background: #ece9d8; padding: 2px 8px; font-size: 0.75rem; color: black; display: flex; gap: 15px; border-bottom: 1px solid #fff; }
-        .xp-toolbar { background: #ece9d8; padding: 4px 8px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #d4d0c8; }
-        .xp-toolbar-btn { display: flex; align-items: center; gap: 4px; padding: 4px 8px; cursor: pointer; color: black; font-size: 0.8rem; border: 1px solid transparent; }
-        .xp-toolbar-btn:hover { border: 1px solid #707070; box-shadow: inset 1px 1px #fff, inset -1px -1px #808080; }
-        .xp-addressbar { background: #ece9d8; padding: 4px 8px; display: flex; align-items: center; gap: 10px; color: black; font-size: 0.8rem; border-bottom: 1px solid #808080; }
+        #xpExplorer { top: 80px; left: 20%; width: 900px; height: 600px; display: none; }
+        .xp-menubar { background: #c0c0c0; padding: 2px 8px; font-size: 11px; color: black; display: flex; gap: 15px; border-bottom: 1px solid #808080; box-shadow: 0 1px #fff; font-family:'Gulim'; }
+        .xp-toolbar { background: #c0c0c0; padding: 4px 8px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #808080; box-shadow: 0 1px #fff; }
+        .xp-toolbar-btn { display: flex; align-items: center; gap: 4px; padding: 4px 8px; cursor: pointer; color: black; font-size: 11px; border: 1px solid transparent; font-family:'Gulim'; }
+        .xp-addressbar { background: #c0c0c0; padding: 4px 8px; display: flex; align-items: center; gap: 10px; color: black; font-size: 11px; border-bottom: 1px solid #808080; box-shadow: 0 1px #fff; font-family:'Gulim'; }
         .address-input-box { flex: 1; background: white; border: 2px inset #d4d0c8; display: flex; align-items: center; padding: 2px 5px; height: 24px; }
         
         .xp-body { display: flex; flex: 1; overflow: hidden; background: #fff; }
-        .xp-sidebar { width: 220px; background: linear-gradient(to bottom, #748aff 0%, #4a67ed 100%); padding: 12px; border-right: 1px solid #0054e3; overflow-y: auto; }
+        .xp-sidebar { width: 220px; background: #c0c0c0; padding: 12px; border-right: 1px solid #808080; overflow-y: auto; }
         .sidebar-panel { background: white; border-radius: 3px; margin-bottom: 15px; overflow: hidden; font-family: 'Gulim'; }
-        .sidebar-header { background: linear-gradient(to right, #ffffff, #c4d5fd); color: #2151dc; font-weight: bold; padding: 5px 10px; font-size: 0.75rem; }
-        .sidebar-content { padding: 10px; background: #d3e5fa; font-size: 0.75rem; display: flex; flex-direction: column; gap: 8px; }
+        .sidebar-header { background: linear-gradient(to right, #ffffff, #c4d5fd); color: #2151dc; font-weight: bold; padding: 5px 10px; font-size: 11px; }
+        .sidebar-content { padding: 10px; background: #d3e5fa; font-size: 11px; display: flex; flex-direction: column; gap: 8px; }
         .sidebar-item { display: flex; align-items: center; gap: 6px; color: #2151dc; cursor: pointer; }
         .sidebar-item:hover { text-decoration: underline; color: #428eff; }
-        .sidebar-item img { width: 14px; height: 14px; }
-
-        .xp-main-view { flex: 1; padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); grid-auto-rows: min-content; gap: 15px; overflow-y: auto; background: white; }
-        .file-icon { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; cursor: pointer; padding: 8px; border: 1px solid transparent; }
-        .file-icon.selected { background: #316ac5; outline: 1px dotted #808080; }
-        .file-icon img { width: 48px; height: 48px; }
-        .file-icon.selected img { filter: brightness(0.8) sepia(1) hue-rotate(180deg) saturate(3); }
-        .file-name { font-size: 0.75rem; color: black; line-height: 1.2; word-break: break-all; padding: 2px 4px; }
-        .file-icon.selected .file-name { color: white; background: #000; }
         
-        .inline-rename-input { font-family: 'Gulim'; font-size: 0.75rem; text-align: center; padding: 1px; border: 1px solid black; background: white; color: black; width: 90px; outline: none; }
+        .xp-main-view { flex: 1; padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); grid-auto-rows: min-content; gap: 15px; overflow-y: auto; background: white; align-content: start; }
+        .file-icon { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; cursor: pointer; padding: 8px; border: 1px solid transparent; }
+        .file-icon.selected { background: #000080; outline: 1px dotted #808080; }
+        .file-icon img { width: 48px; height: 48px; }
+        .file-name { font-size: 11px; color: black; line-height: 1.2; word-break: break-all; padding: 2px 4px; font-family:'Gulim'; }
+        .file-icon.selected .file-name { color: white; background: transparent; }
+        
+        .inline-rename-input { font-family: 'Gulim'; font-size: 11px; text-align: center; padding: 1px; border: 1px solid black; background: white; color: black; width: 90px; outline: none; }
 
-        .xp-popup { z-index: 500; display: block; border: 3px solid #0054e3; box-shadow: 5px 5px 15px rgba(0,0,0,0.5); }
-        .xp-popup-body { background: #ece9d8; padding: 20px; color: black; font-size: 0.85rem; }
-        .xp-btn { background: #ece9d8; border: 1px solid #707070; padding: 3px 20px; font-size: 0.8rem; box-shadow: inset 1px 1px #fff; cursor: pointer; color: black; margin: 0 5px; }
+        .xp-btn { background: #c0c0c0; border-top: 1px solid #fff; border-left: 1px solid #fff; border-right: 1px solid #000; border-bottom: 1px solid #000; padding: 3px 20px; font-size: 11px; box-shadow: inset 1px 1px #dfdfdf, inset -1px -1px #808080; cursor: pointer; color: black; margin: 0 5px; font-family:'Gulim'; }
+        .xp-btn:active { border-top: 1px solid #000; border-left: 1px solid #000; border-right: 1px solid #fff; border-bottom: 1px solid #fff; box-shadow: inset 1px 1px #808080, inset -1px -1px #dfdfdf; padding: 4px 19px 2px 21px; }
+
+        /* 🌟 디데이 위젯 (레트로 폰트 적용) */
+        .d-day-widget { position: absolute; top: 30px; right: 40px; z-index: 10; text-align: right; }
+        .d-day-label { font-size: 14px; color: #aaa; letter-spacing: 2px; text-shadow: 1px 1px 2px #000; }
+        #ddayCount { font-size: 3rem; color: #fff; letter-spacing: 2px; text-shadow: 2px 2px 0px #000, -1px -1px 0px rgba(255,255,255,0.3); margin-top: 5px; }
+
+        /* Taskbar (Win 98) */
+        .taskbar { position: fixed; bottom: 0; left: 0; width: 100%; height: 28px; background: #c0c0c0; border-top: 2px solid #dfdfdf; box-shadow: inset 0 1px #fff; display: flex; justify-content: space-between; align-items: center; z-index: 10000; padding: 2px; font-family:'Gulim'; }
+        .start-btn { height: 100%; padding: 0 6px; display: flex; align-items: center; gap: 4px; background: #c0c0c0; border-top: 1px solid #fff; border-left: 1px solid #fff; border-right: 1px solid #000; border-bottom: 1px solid #000; box-shadow: inset 1px 1px #dfdfdf, inset -1px -1px #808080; font-weight: bold; font-size: 11px; color: black; }
+        .start-btn:active { border-top: 1px solid #000; border-left: 1px solid #000; border-right: 1px solid #fff; border-bottom: 1px solid #fff; box-shadow: inset 1px 1px #808080, inset -1px -1px #dfdfdf; padding: 1px 5px -1px 7px; }
+        .taskbar-tray { height: 100%; padding: 0 8px; display: flex; align-items: center; border-top: 1px solid #808080; border-left: 1px solid #808080; border-right: 1px solid #fff; border-bottom: 1px solid #fff; font-size: 11px; color: black; gap: 5px; background: #c0c0c0; }
+
+        /* Start Menu (Win 98) */
+        .start-menu { position: fixed; bottom: 28px; left: 0; width: 200px; background: #c0c0c0; border-top: 1px solid #fff; border-left: 1px solid #fff; border-right: 1px solid #000; border-bottom: 1px solid #000; box-shadow: inset 1px 1px #dfdfdf, inset -1px -1px #808080, 5px 5px 10px rgba(0,0,0,0.5); z-index: 9999; display: none; flex-direction: row; color: black; font-family:'Gulim'; }
+        .start-menu-sidebar { width: 30px; background: linear-gradient(to bottom, #000080, #1084d0); display: flex; align-items: flex-end; padding-bottom: 5px; }
+        .start-menu-sidebar span { color: white; font-weight: bold; transform: rotate(-90deg); transform-origin: left bottom; white-space: nowrap; font-size: 14px; margin-left: 5px; margin-bottom: 60px; letter-spacing: 2px; font-family:'Tahoma'; }
+        .start-menu-items { flex: 1; padding: 2px; display: flex; flex-direction: column; }
+        .start-menu-item { padding: 8px 10px; display: flex; align-items: center; gap: 10px; font-size: 11px; cursor: pointer; }
+        .start-menu-item:hover { background: #000080; color: white; }
+
+        /* Calendar (Win 98) */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #808080; border-top: 2px solid #808080; border-left: 2px solid #808080; border-right: 2px solid #fff; border-bottom: 2px solid #fff; margin: 10px; font-family:'Gulim'; }
+        .cal-header { background: #c0c0c0; text-align: center; font-size: 11px; padding: 5px; font-weight: bold; color: black; }
+        .cal-day { background: white; height: 50px; padding: 3px; font-size: 11px; color: black; display: flex; flex-direction: column; overflow: hidden; cursor:pointer;}
+        .cal-day.empty { background: #e0e0e0; cursor:default; }
+        .cal-day:hover:not(.empty) { background: #000080; color:white; }
+        .memo-badge { background: #ff3366; color: white; font-size: 9px; padding: 1px 3px; border-radius: 2px; margin-top: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; font-family:'Gulim';}
+
+        #messengerScroll::-webkit-scrollbar, #logScroll::-webkit-scrollbar { width: 14px; }
+        #messengerScroll::-webkit-scrollbar-thumb, #logScroll::-webkit-scrollbar-thumb { background: #c0c0c0; border-top: 1px solid #fff; border-left: 1px solid #fff; border-right: 1px solid #000; border-bottom: 1px solid #000; }
+        #messengerScroll::-webkit-scrollbar-track, #logScroll::-webkit-scrollbar-track { background: #dfdfdf; border-left: 1px solid #808080; border-right: 1px solid #fff; }
     </style>
 </head>
 <body onload="window.init()">
+
+    <audio id="clickSound" src="https://actions.google.com/sounds/v1/ui/mouse_click.ogg"></audio>
 
     <div class="vignette"></div>
     <div class="bg-container"><img src="https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdna%2Fbo0278%2FdJMcafL32e7%2FAAAAAAAAAAAAAAAAAAAAABlHjiaQc4NH3u1mNQVjRHfd-DvmuBcNJd2YohedpmLn%2Fimg.png%3Fcredential%3DyqXZFxpELC7KVnFOS48ylbz2pIh7yKj8%26expires%3D1774969199%26allow_ip%3D%26allow_referer%3D%26signature%3DmsuoDZ%252FDOFMkyKffXpYXOGq0wjg%253D" class="bg-image"><div class="fade-overlay"></div></div>
 
     <div class="chat-stream"><div class="chat-track" id="chatTrack"></div></div>
 
+    <div class="d-day-widget">
+        <span class="d-day-label">SINCE 2025.12.02</span>
+        <div id="ddayCount">0 DAYS</div>
+    </div>
+
     <div class="desktop-icons">
-        <div class="icon-item" onclick="window.openExplorer('folder-text', '로컬 디스크 (C:) \\ 기록 아카이브')"><img src="https://win98icons.alexmeub.com/icons/png/directory_open_file_mydocs-4.png" class="icon-img"><span class="icon-label">기록 폴더</span></div>
-        <div class="icon-item" onclick="window.openExplorer('folder-photos', '로컬 디스크 (C:) \\ 사진첩')"><img src="https://win98icons.alexmeub.com/icons/png/directory_closed-4.png" class="icon-img"><span class="icon-label">사진첩</span></div>
-        <div class="icon-item" onclick="window.openExplorer('trash', '휴지통')"><img src="https://win98icons.alexmeub.com/icons/png/recycle_bin_empty-4.png" class="icon-img"><span class="icon-label">휴지통</span></div>
+        <div class="icon-item" onclick="window.openMessenger()">
+            <img src="https://win98icons.alexmeub.com/icons/png/chm-0.png" class="icon-img">
+            <span class="icon-label">메신저</span>
+        </div>
+        <div class="icon-item" onclick="window.openExplorer('folder-text', '로컬 디스크 (C:) \\ 기록 아카이브')">
+            <img src="https://win98icons.alexmeub.com/icons/png/directory_open_file_mydocs-4.png" class="icon-img">
+            <span class="icon-label">기록 폴더</span>
+        </div>
+        <div class="icon-item" onclick="window.openExplorer('folder-photos', '로컬 디스크 (C:) \\ 사진첩')">
+            <img src="https://win98icons.alexmeub.com/icons/png/directory_closed-4.png" class="icon-img">
+            <span class="icon-label">사진첩</span>
+        </div>
+        <div class="icon-item" onclick="window.openCalendar()">
+            <img src="https://win98icons.alexmeub.com/icons/png/calendar-0.png" class="icon-img">
+            <span class="icon-label">캘린더</span>
+        </div>
+        <div class="icon-item" onclick="window.openExplorer('trash', '휴지통')">
+            <img src="https://win98icons.alexmeub.com/icons/png/recycle_bin_empty-4.png" class="icon-img">
+            <span class="icon-label">휴지통</span>
+        </div>
     </div>
 
     <div class="wmp-player draggable" id="wmpPlayer" data-x="0" data-y="0">
@@ -115,7 +173,7 @@
         <div class="wmp-menu">파일(F) 보기(V) 재생(P) 도움말(H)</div>
         <div class="wmp-screen">
             <img src="https://image.bugsm.co.kr/album/images/200/203296/20329614.jpg?version=20250404015924" class="album-cover">
-            <div class="wmp-info-panel">쇼: Jikan-Uin Archive<br>클립: Dawg<br>만든 이: Chin Chilla<br>저작권: 2024 Archive</div>
+            <div class="wmp-info-panel">쇼: Jikan-Uin Archive<br>클립: Dawg<br>만든 이: Chin Chilla</div>
             <iframe id="musicFrame" style="position:absolute; width:0; height:0; border:none;" src="" allow="autoplay"></iframe>
         </div>
         <div style="width:100%; height:8px; background:#808080; border:1px inset #fff;"></div>
@@ -135,11 +193,10 @@
         <div class="xp-menubar"><span>파일(F)</span><span>편집(E)</span><span>보기(V)</span><span>즐겨찾기(A)</span><span>도구(T)</span><span>도움말(H)</span></div>
         <div class="xp-toolbar">
             <div class="xp-toolbar-btn" onclick="window.goBack()"><img src="https://win98icons.alexmeub.com/icons/png/back-0.png" width="22"> <span>뒤로</span></div>
-            <div class="xp-toolbar-btn"><img src="https://win98icons.alexmeub.com/icons/png/search_file-0.png" width="22"> <span>검색</span></div>
         </div>
         <div class="xp-addressbar">
             <span>주소(D)</span>
-            <div class="address-input-box"><img src="https://win98icons.alexmeub.com/icons/png/directory_closed-0.png" width="16" style="margin-right:5px;"><span id="addressPath" style="flex:1;">C:\</span></div>
+            <div class="address-input-box"><img src="https://win98icons.alexmeub.com/icons/png/directory_closed-0.png" width="16" style="margin-right:5px;"><span id="addressPath" style="flex:1; font-family:'Gulim';">C:\</span></div>
         </div>
         <div class="xp-body">
             <div class="xp-sidebar">
@@ -147,8 +204,8 @@
                     <div class="sidebar-header">파일 및 폴더 작업</div>
                     <div class="sidebar-content">
                         <div class="sidebar-item" onclick="window.addNewFolder()"><img src="https://win98icons.alexmeub.com/icons/png/directory_closed-0.png"> 새 폴더 만들기</div>
-                        <div class="sidebar-item" onclick="window.triggerAddFile()"><img src="https://win98icons.alexmeub.com/icons/png/write_wordpad-0.png"> 이 폴더에 새 파일 만들기</div>
-                        <div class="sidebar-item" onclick="window.renameSelectedItem()"><img src="https://win98icons.alexmeub.com/icons/png/rename-0.png"> 이 항목 이름 바꾸기</div>
+                        <div class="sidebar-item" onclick="window.triggerAddFile()"><img src="https://win98icons.alexmeub.com/icons/png/write_wordpad-0.png"> 새 문서 만들기</div>
+                        <div class="sidebar-item" onclick="window.renameSelectedItem()"><img src="https://win98icons.alexmeub.com/icons/png/rename-0.png"> 이름 바꾸기</div>
                         <div class="sidebar-item" onclick="window.deleteSelectedItem()"><img src="https://win98icons.alexmeub.com/icons/png/msg_error-0.png"> 이 항목 삭제</div>
                     </div>
                 </div>
@@ -157,54 +214,121 @@
         </div>
     </div>
 
-    <audio id="clickSound" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
+    <div class="taskbar">
+        <div class="start-btn" onclick="window.toggleStartMenu()">
+            <img src="https://win98icons.alexmeub.com/icons/png/windows-0.png" width="16"> 시작
+        </div>
+        <div class="taskbar-tray">
+            <img src="https://win98icons.alexmeub.com/icons/png/loudspeaker_rays-0.png" width="14">
+            <span id="taskbarClock">AM 12:00</span>
+        </div>
+    </div>
+
+    <div class="start-menu" id="startMenu">
+        <div class="start-menu-sidebar"><span>Windows 98</span></div>
+        <div class="start-menu-items">
+            <div class="start-menu-item" onclick="window.openMessenger(); window.toggleStartMenu()">
+                <img src="https://win98icons.alexmeub.com/icons/png/chm-0.png" width="24"> <span>메신저</span>
+            </div>
+            <div class="start-menu-item" onclick="window.openCalendar(); window.toggleStartMenu()">
+                <img src="https://win98icons.alexmeub.com/icons/png/calendar-0.png" width="24"> <span>일정 달력</span>
+            </div>
+            <div style="border-top: 1px solid #808080; border-bottom: 1px solid #fff; margin: 3px 0;"></div>
+            <div class="start-menu-item" onclick="window.toggleStartMenu()">
+                <img src="https://win98icons.alexmeub.com/icons/png/shut_down_normal-0.png" width="24"> <span>시스템 종료(U)...</span>
+            </div>
+        </div>
+    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, deleteDoc, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, updateDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         const firebaseConfig = { apiKey: "AIzaSyAzy2_YfNKk2vPzU6l1AwjCC1_TepXYAsU", authDomain: "inukan-19e53.firebaseapp.com", projectId: "inukan-19e53", storageBucket: "inukan-19e53.firebasestorage.app", messagingSenderId: "1035051352954", appId: "1:1035051352954:web:a06a37592846ac41710cc3" };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        window.db = db; window.addDoc = addDoc; window.getDocs = getDocs; window.deleteDoc = deleteDoc; window.updateDoc = updateDoc; window.doc = doc; window.collection = collection;
+        window.db = db; window.addDoc = addDoc; window.getDocs = getDocs; window.deleteDoc = deleteDoc; window.updateDoc = updateDoc; window.doc = doc; window.collection = collection; window.setDoc = setDoc;
 
         window.config = {
             profiles: { jikan: "https://i.postimg.cc/wjYnMhTH/jikanpeusa.png", jiuin: "https://i.postimg.cc/QVGYB3D4/peusa.png" },
-            chats: [ { type: 'date', text: "2024년 11월 17일" }, { sender: "지칸", text: "씨발. 진짜.. 너 어디냐.", side: "left" }, { sender: "지우인", text: "나 웃는 게 그렇게 싫어? 끓여준 게 어디야.", side: "right" }, { sender: "지칸", text: "여유 부리면서 쳐웃지 마라. 꼴받으니까.", side: "left" } ],
+            chats: [ 
+                { type: 'date', text: "2024년 11월 17일" }, 
+                { sender: "지칸", text: "씨발. 진짜.. 너 어디냐.", side: "left" }, 
+                { sender: "지우인", text: "나 웃는 게 그렇게 싫어? 끓여준 게 어디야.", side: "right" }, 
+                { sender: "지칸", text: "여유 부리면서 쳐웃지 마라. 꼴받으니까.", side: "left" } 
+            ],
             folders: {
                 'folder-text': [
-                    { type: 'rp', title: "역극_3000개_백업.log", docId: 'doc-1', content: [{ name: "지우인", msg: "야, 거기 서.", side: "right" }] },
-                    { type: 'txt', title: "기록_파편.txt", docId: 'doc-2', content: "모든 게 무너진 날의 기록.\n지칸은 더 이상 웃지 않았다." }
+                    { type: 'txt', title: "역극_3000개_백업.log", docId: 'doc-2', content: "[2026.03.12 02:03] 지칸 : 실실 웃는게 너가 더 잡상인 같아. (어깨 건드리면 눈썹 곧장 치켜오른다.) 일 안하고 농땡이 피우지 너.\n\n[2026.03.12 02:09] 지우인 : 오래 붙어있으면 나 인기 떨어지는데. (농땡이 피우냔 말에 아, 하더니 네 얼굴 앞에 손 훅 갖다댐) 이거 봐.\n\n[2026.03.12 02:10] 지칸 : 인기 얻어서 뭐하게. (네 말에 곧바로 또 미간 찡그리다 훅 다가온 손 쳐다본다.) 뭔데. 손금 봐달라고?" }
                 ],
                 'folder-photos': [{ type: 'img', title: "메모리_01.jpg", docId: 'doc-3', url: "https://images.unsplash.com/photo-1518562180175-34a163b1a9a6" }],
                 'trash': [{ type: 'txt', title: "버려진_쪽지.txt", docId: 'doc-4', content: "재워주게?" }]
-            }
+            },
+            calendar: {} 
         };
 
         window.currentActiveFolder = '';
         window.folderHistory = [];
         window.selectedFile = null;
+        window.calDate = new Date(); 
 
         window.init = async function() {
+            window.calcDDay();
             window.initDraggable();
-            window.initChatLoop(); // 카톡 흘러가는 로직 다시 실행!
-            window.spawnVirusPopups(); // 원하시던 기괴한 바이러스 팝업 띄우기
-            try { await window.loadFilesFromFirebase(); } catch(e) {}
+            window.initChatLoop(); 
+            window.spawnCIHVirus(); // 🌟 WMP 뒤쪽에 숨겨진 CIH 바이러스 창 띄우기
+            window.updateClock(); setInterval(window.updateClock, 1000); 
+            window.initGlobalClickSound(); 
+            window.initGlitchEffect(); // 🌟 느리고 묵직한 다크 글리치 효과
+
+            try { 
+                await window.loadFilesFromFirebase(); 
+                await window.loadCalendar(); 
+            } catch(e) {}
         };
 
-        // --- 음악 플레이어 ---
-        window.playMusic = function() {
-            document.getElementById('musicFrame').src = "https://www.youtube.com/embed/XCliKS4XlWc?autoplay=1&mute=0&loop=1&playlist=XCliKS4XlWc";
-        };
-        window.stopMusic = function() {
-            document.getElementById('musicFrame').src = "";
+        window.initGlobalClickSound = function() {
+            document.addEventListener('mousedown', () => {
+                const sound = document.getElementById('clickSound');
+                if(sound) { sound.currentTime = 0; sound.play().catch(()=>{}); }
+            });
         };
 
-        // --- 카톡 로직 ---
+        // 🌟 다크 글리치 이펙트 (8초 주기, 부드럽게 노이즈 낌)
+        window.initGlitchEffect = function() {
+            setInterval(() => {
+                if(Math.random() > 0.6) {
+                    document.body.classList.add('glitch-active');
+                    setTimeout(() => document.body.classList.remove('glitch-active'), 1000); // 1초 지속
+                }
+            }, 8000); 
+        };
+
+        window.calcDDay = function() {
+            const startDate = new Date("2025-12-10T00:00:00").getTime();
+            const today = new Date().getTime(); 
+            const diff = Math.floor((today - startDate) / (1000 * 60 * 60 * 24)); 
+            document.getElementById('ddayCount').innerText = diff >= 0 ? `D+${diff}` : `D${diff}`;
+        };
+
+        window.updateClock = function() {
+            const d = new Date();
+            let h = d.getHours(); const m = d.getMinutes().toString().padStart(2, '0');
+            const ampm = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12;
+            document.getElementById('taskbarClock').innerText = `${ampm} ${h}:${m}`;
+        };
+
+        window.toggleStartMenu = function() {
+            const m = document.getElementById('startMenu');
+            m.style.display = m.style.display === 'flex' ? 'none' : 'flex';
+        };
+
+        window.playMusic = function() { document.getElementById('musicFrame').src = "https://www.youtube.com/embed/XCliKS4XlWc?autoplay=1&mute=0&loop=1&playlist=XCliKS4XlWc"; };
+        window.stopMusic = function() { document.getElementById('musicFrame').src = ""; };
+
         window.initChatLoop = function() {
-            const track = document.getElementById('chatTrack');
-            track.innerHTML = '';
+            const track = document.getElementById('chatTrack'); track.innerHTML = '';
             const repeatedChats = Array(15).fill(window.config.chats).flat();
             repeatedChats.forEach(chat => {
                 if (chat.type === 'date') {
@@ -218,32 +342,128 @@
             });
         };
 
-        // --- 원조 바이러스 팝업 ---
-        window.spawnVirusPopups = function() {
+        // 🌟 캡처본(CIH 바이러스)을 WMP 뒤쪽 위치로!
+        window.spawnCIHVirus = function() {
             const layer = document.getElementById('virusPopups');
+            const virusImgUrl = "https://upload.wikimedia.org/wikipedia/commons/0/07/CIH.png";
+
             for(let i=0; i<3; i++) {
                 const popup = document.createElement('div');
-                popup.className = 'xp-window xp-popup draggable';
-                popup.style.left = (Math.random() * 300 + 200) + 'px';
-                popup.style.top = (Math.random() * 300 + 100) + 'px';
-                popup.style.position = 'absolute';
+                popup.className = 'xp-window draggable';
+                
+                // 미디어 플레이어 뒤쪽 (WMP z-index: 1000이므로 500으로 뒤에 숨김)
+                popup.style.right = (50 + (i * 30)) + 'px'; 
+                popup.style.bottom = (80 + (i * 40)) + 'px';
+                popup.style.left = 'auto'; popup.style.top = 'auto'; 
+                popup.style.zIndex = '500'; 
+                popup.style.width = '320px';
+                
                 popup.innerHTML = `
-                    <div class="xp-title-bar drag-handle"><span>경고 - 악성 코드 탐지</span><div class="xp-close-btn" onclick="this.closest('.xp-popup').remove()">✕</div></div>
-                    <div class="xp-popup-body" style="display:flex; flex-direction:column; align-items:center; gap:10px;">
-                        <div style="display:flex; align-items:center; gap:10px;">
-                            <img src="https://win98icons.alexmeub.com/icons/png/msg_error-0.png" width="32">
-                            <span style="font-weight:bold; color:red;">치명적인 오류 발생! 시스템이 손상되었습니다.</span>
-                        </div>
-                        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQIQI5LhhNayIsdpTHUWD7vUa1I0LFRhQSCpg&s" style="border: 2px solid #a0a0a0; max-width:100%;">
+                    <div class="xp-title-bar drag-handle"><span>Warning</span><div class="xp-close-btn" onclick="this.parentElement.parentElement.remove()">✕</div></div>
+                    <div style="padding:0; background:black; border-bottom:2px solid #fff;">
+                        <img src="${virusImgUrl}" style="width:100%; display:block; border:1px solid #808080;">
                     </div>
-                    <div style="background:#ece9d8; padding:10px; display:flex; justify-content:center; gap:10px;">
-                        <button class="xp-btn" onclick="this.closest('.xp-popup').remove()">무시</button>
-                    </div>`;
+                `;
                 layer.appendChild(popup);
             }
         };
 
-        // --- 파이어베이스 로드 ---
+        window.openMessenger = function() {
+            document.getElementById('clickSound').play().catch(()=>{});
+            if(document.getElementById('messengerWindow')) return;
+            
+            const popup = document.createElement('div');
+            popup.className = 'xp-window draggable'; popup.id = 'messengerWindow';
+            popup.style.cssText = `top: 100px; left: 60%; width: 340px; height: 500px; position: absolute; z-index: 1000; display:flex; flex-direction:column; background:#c0c0c0;`;
+            
+            let chatHTML = window.config.chats.map(chat => {
+                if(chat.type === 'date') return `<div class="date-line" style="margin:10px 0;"><span style="background:rgba(0,0,0,0.2); color:#fff; font-size:11px; font-family:'Gulim';">${chat.text}</span></div>`;
+                const nameColor = chat.side === 'left' ? '#0033cc' : '#cc0000';
+                return `<div style="margin-bottom:8px; font-family:'Gulim'; font-size:12px; color:black;"><b style="color:${nameColor};">${chat.sender}</b> 말:<br><span style="color:#333;">${chat.text}</span></div>`;
+            }).join('');
+
+            popup.innerHTML = `
+                <div class="xp-title-bar drag-handle"><div style="display:flex; align-items:center; gap:8px;"><img src="https://win98icons.alexmeub.com/icons/png/chm-0.png" width="16"> Jikan - 대화</div><div class="xp-close-btn" onclick="document.getElementById('messengerWindow').remove()">✕</div></div>
+                <div style="background:#c0c0c0; padding:2px 5px; font-size:11px; color:black; border-bottom:1px solid #808080; font-family:'Gulim';">파일(F) 편집(E) 보기(V) 도움말(H)</div>
+                <div id="messengerScroll" style="flex:1; overflow-y:auto; padding:10px; background:white; border: 2px inset #d4d0c8; margin: 5px;">${chatHTML}</div>
+                <div style="padding:5px; display:flex; flex-direction:column; gap:5px;"><textarea id="msgInput" style="height:50px; border:2px inset #d4d0c8; font-family:'Gulim'; font-size:12px; resize:none;"></textarea><div style="text-align:right;"><button class="xp-btn" onclick="window.sendMsg()">보내기(S)</button></div></div>
+            `;
+            document.body.appendChild(popup);
+            document.getElementById('messengerScroll').scrollTop = document.getElementById('messengerScroll').scrollHeight;
+
+            document.getElementById('msgInput').addEventListener('keypress', function (e) {
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); window.sendMsg(); }
+            });
+        };
+
+        window.sendMsg = function() {
+            const input = document.getElementById('msgInput'); const txt = input.value.trim(); if(!txt) return;
+            const scroll = document.getElementById('messengerScroll');
+            const item = document.createElement('div');
+            item.style.cssText = "margin-bottom:8px; font-family:'Gulim'; font-size:12px; color:black;";
+            item.innerHTML = `<b style="color:#cc0000;">나</b> 말:<br><span style="color:#333;">${txt}</span>`;
+            scroll.appendChild(item); input.value = ''; scroll.scrollTop = scroll.scrollHeight;
+
+            setTimeout(() => {
+                const msgs = ["지금은 연락을 받을 수 없다.", "뭐", "나중에 해", "바빠", "..."];
+                const reply = document.createElement('div');
+                reply.style.cssText = "margin-bottom:8px; font-family:'Gulim'; font-size:12px; color:black;";
+                reply.innerHTML = `<b style="color:#0033cc;">지칸</b> 말:<br><span style="color:#333;">${msgs[Math.floor(Math.random() * msgs.length)]}</span>`;
+                if(document.getElementById('messengerScroll')) {
+                    document.getElementById('messengerScroll').appendChild(reply);
+                    document.getElementById('messengerScroll').scrollTop = document.getElementById('messengerScroll').scrollHeight;
+                }
+            }, 2000);
+        };
+
+        window.openCalendar = function() {
+            document.getElementById('clickSound').play().catch(()=>{});
+            if(document.getElementById('calendarWindow')) return;
+            const popup = document.createElement('div');
+            popup.className = 'xp-window draggable'; popup.id = 'calendarWindow';
+            popup.style.cssText = `top: 150px; left: 30%; width: 420px; position: absolute; z-index: 1000; display:flex; flex-direction:column;`;
+            popup.innerHTML = `
+                <div class="xp-title-bar drag-handle"><div style="display:flex; align-items:center; gap:8px;"><img src="https://win98icons.alexmeub.com/icons/png/calendar-0.png" width="16"> 일정 달력</div><div class="xp-close-btn" onclick="document.getElementById('calendarWindow').remove()">✕</div></div>
+                <div style="padding:10px; display:flex; justify-content:space-between; align-items:center; color:black; font-weight:bold; font-family:'Gulim';"><button class="xp-btn" onclick="window.changeMonth(-1)">◀</button><span id="calMonthYear"></span><button class="xp-btn" onclick="window.changeMonth(1)">▶</button></div>
+                <div class="calendar-grid" id="calGrid"></div>
+            `;
+            document.body.appendChild(popup);
+            window.renderCalendar();
+        };
+
+        window.changeMonth = function(offset) { window.calDate.setMonth(window.calDate.getMonth() + offset); window.renderCalendar(); };
+
+        window.renderCalendar = function() {
+            const grid = document.getElementById('calGrid'); if(!grid) return;
+            const year = window.calDate.getFullYear(); const month = window.calDate.getMonth();
+            document.getElementById('calMonthYear').innerText = `${year}년 ${month + 1}월`;
+            const firstDay = new Date(year, month, 1).getDay(); const daysInMonth = new Date(year, month + 1, 0).getDate();
+            let html = ['일','월','화','수','목','금','토'].map(d => `<div class="cal-header">${d}</div>`).join('');
+            for(let i=0; i<firstDay; i++) html += `<div class="cal-day empty"></div>`;
+            const today = new Date();
+            for(let i=1; i<=daysInMonth; i++) {
+                const dateKey = `${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+                const isToday = (year === today.getFullYear() && month === today.getMonth() && i === today.getDate());
+                const bg = isToday ? '#000080' : 'white'; const color = isToday ? 'white' : 'black';
+                const memo = window.config.calendar[dateKey] ? `<div class="memo-badge">${window.config.calendar[dateKey]}</div>` : '';
+                html += `<div class="cal-day" style="background:${bg}; color:${color}; cursor:pointer;" onclick="window.addMemo('${dateKey}')"><b>${i}</b>${memo}</div>`;
+            }
+            grid.innerHTML = html;
+        };
+
+        window.addMemo = async function(dateStr) {
+            const txt = prompt(`${dateStr}의 일정을 입력하세요:\n(비워두면 삭제됩니다)`);
+            if(txt === null) return;
+            if(txt.trim() === '') { delete window.config.calendar[dateStr]; } else { window.config.calendar[dateStr] = txt; }
+            try { await window.setDoc(window.doc(window.db, "settings", "calendar"), window.config.calendar); } catch(e) {}
+            window.renderCalendar();
+        };
+
+        window.loadCalendar = async function() {
+            try { const docSnap = await window.getDocs(window.collection(window.db, "settings")); docSnap.forEach(d => { if(d.id === 'calendar') window.config.calendar = d.data(); }); } catch(e) {}
+        };
+
+        // 🌟 파일 & 폴더 & 드래그앤드롭 
         window.loadFilesFromFirebase = async function() {
             const querySnapshot = await window.getDocs(window.collection(window.db, "files"));
             querySnapshot.forEach((d) => {
@@ -261,108 +481,54 @@
             } return null;
         };
 
-        // --- 🌟 인라인 이름 변경 (진짜 윈도우처럼!) ---
-        window.inlineRename = function(fileObj, iconElement) {
-            const nameSpan = iconElement.querySelector('.file-name');
-            const oldName = fileObj.title;
-            nameSpan.innerHTML = `<input type="text" class="inline-rename-input" value="${oldName}">`;
-            
-            const input = nameSpan.querySelector('input');
-            input.focus();
-            input.select();
+        window.renderFiles = function(folderId) {
+            const view = document.getElementById('explorerView');
+            const files = window.config.folders[folderId] || [];
+            view.innerHTML = ''; window.selectedFile = null;
 
-            const finishRename = async () => {
-                if(input.dataset.done) return;
-                input.dataset.done = true;
-                const newName = input.value.trim() || oldName;
+            files.forEach((file) => {
+                const icon = document.createElement('div'); icon.className = 'file-icon';
                 
-                if(newName !== oldName && fileObj.docId && !fileObj.docId.startsWith('doc-')) {
-                    try { await window.updateDoc(window.doc(window.db, "files", fileObj.docId), { title: newName }); } catch(e) {}
+                // 🌟 드래그 앤 드롭 파일 이동 기능
+                icon.setAttribute('draggable', 'true');
+                icon.ondragstart = (e) => { e.dataTransfer.setData('text/plain', file.docId); e.stopPropagation(); };
+
+                if(file.type === 'folder') {
+                    icon.ondragover = (e) => { e.preventDefault(); icon.classList.add('selected'); };
+                    icon.ondragleave = (e) => { icon.classList.remove('selected'); };
+                    icon.ondrop = async (e) => {
+                        e.preventDefault(); icon.classList.remove('selected');
+                        const draggedDocId = e.dataTransfer.getData('text/plain');
+                        if(draggedDocId && draggedDocId !== file.docId) { await window.moveFileToFolder(draggedDocId, file.id); }
+                    };
                 }
-                fileObj.title = newName;
-                window.renderFiles(window.currentActiveFolder);
-            };
-
-            input.onblur = finishRename;
-            input.onkeydown = (e) => {
-                if(e.key === 'Enter') finishRename();
-                if(e.key === 'Escape') { input.value = oldName; finishRename(); }
-            };
-        };
-
-        // --- 폴더 및 파일 생성 (내용 묻지 않음, 빈 파일 생성) ---
-        window.addNewFolder = async function() {
-            const id = 'folder-' + Date.now();
-            const newFolder = { type: 'folder', title: "새 폴더", id: id, folder: window.currentActiveFolder, createdAt: Date.now() };
-
-            try {
-                const docRef = await window.addDoc(window.collection(window.db, "files"), newFolder);
-                newFolder.docId = docRef.id;
-                if(!window.config.folders[id]) window.config.folders[id] = [];
-                if(!window.config.folders[window.currentActiveFolder]) window.config.folders[window.currentActiveFolder] = [];
-                window.config.folders[window.currentActiveFolder].push(newFolder);
-                window.renderFiles(window.currentActiveFolder);
                 
-                setTimeout(() => {
-                    const icons = document.querySelectorAll('#explorerView .file-icon');
-                    if(icons.length > 0) {
-                        const lastIcon = icons[icons.length - 1];
-                        window.selectedFile = newFolder;
-                        lastIcon.classList.add('selected');
-                        window.inlineRename(newFolder, lastIcon);
-                    }
-                }, 100);
-            } catch(e) { alert("저장 실패!"); }
-        };
-
-        window.triggerAddFile = async function() {
-            // 현재 폴더가 사진첩(folder-photos) 하위인지 체크
-            const isPhotoFolder = window.folderHistory.length > 0 && window.folderHistory[0].id === 'folder-photos';
-            const defaultTitle = isPhotoFolder ? "새 이미지.jpg" : "새 텍스트 문서.txt";
-            
-            const newData = isPhotoFolder
-                ? { type:'img', title: defaultTitle, url:'', folder: window.currentActiveFolder, createdAt: Date.now() }
-                : { type:'txt', title: defaultTitle, content:'', folder: window.currentActiveFolder, createdAt: Date.now() };
-
-            try {
-                const docRef = await window.addDoc(window.collection(window.db, "files"), newData);
-                newData.docId = docRef.id;
-                if(!window.config.folders[window.currentActiveFolder]) window.config.folders[window.currentActiveFolder] = [];
-                window.config.folders[window.currentActiveFolder].push(newData);
-                window.renderFiles(window.currentActiveFolder);
-                
-                setTimeout(() => {
-                    const icons = document.querySelectorAll('#explorerView .file-icon');
-                    if(icons.length > 0) {
-                        const lastIcon = icons[icons.length - 1];
-                        window.selectedFile = newData;
-                        lastIcon.classList.add('selected');
-                        window.inlineRename(newData, lastIcon);
-                    }
-                }, 100);
-            } catch(e) { alert("저장 실패!"); }
-        };
-
-        window.renameSelectedItem = function() {
-            if(!window.selectedFile) return alert("이름을 바꿀 항목을 선택하세요.");
-            const selectedEl = document.querySelector('.file-icon.selected');
-            if(selectedEl) window.inlineRename(window.selectedFile, selectedEl);
-        };
-
-        window.deleteSelectedItem = async function() {
-            if(!window.selectedFile) return alert("삭제할 항목을 선택하세요.");
-            if(confirm(`'${window.selectedFile.title}' 항목을 삭제하시겠습니까?`)) {
-                if(window.selectedFile.docId && !window.selectedFile.docId.startsWith('doc-')) {
-                    try { await window.deleteDoc(window.doc(window.db, "files", window.selectedFile.docId)); } catch(e) {}
+                let imgHTML = `<img src="https://win98icons.alexmeub.com/icons/png/notepad-0.png" width="48" height="48">`;
+                if(file.type === 'folder' || folderId === 'folder-photos') imgHTML = `<img src="https://win98icons.alexmeub.com/icons/png/directory_closed-0.png" width="48" height="48">`;
+                if(file.type === 'img') {
+                    const fallback = "https://win98icons.alexmeub.com/icons/png/image_file-0.png";
+                    imgHTML = `<img src="${file.url || fallback}" onerror="this.onerror=null; this.src='${fallback}'" style="width:48px; height:48px; object-fit:cover; border:1px solid #808080;">`;
                 }
-                let folderArr = window.config.folders[window.currentActiveFolder];
-                window.config.folders[window.currentActiveFolder] = folderArr.filter(f => f !== window.selectedFile);
-                window.selectedFile = null;
-                window.renderFiles(window.currentActiveFolder);
-            }
+
+                icon.innerHTML = `${imgHTML}<span class="file-name">${file.title}</span>`;
+                icon.onclick = (e) => { e.stopPropagation(); document.querySelectorAll('.file-icon').forEach(el => el.classList.remove('selected')); icon.classList.add('selected'); window.selectedFile = file; };
+                icon.ondblclick = () => { file.type === 'folder' ? window.openSubFolder(file.id, file.title) : window.viewDetail(file); };
+                view.appendChild(icon);
+            });
         };
 
-        // --- 탐색기 네비게이션 ---
+        window.moveFileToFolder = async function(docId, targetFolderId) {
+            const fileObj = window.findFileByDocId(docId);
+            if(!fileObj || !docId.startsWith('doc-')) return;
+            const prevFolder = fileObj.folder;
+            window.config.folders[prevFolder] = window.config.folders[prevFolder].filter(f => f.docId !== docId);
+            fileObj.folder = targetFolderId;
+            if(!window.config.folders[targetFolderId]) window.config.folders[targetFolderId] = [];
+            window.config.folders[targetFolderId].push(fileObj);
+            window.renderFiles(window.currentActiveFolder);
+            try { await window.updateDoc(window.doc(window.db, "files", docId), { folder: targetFolderId }); } catch(e) {}
+        };
+
         window.openExplorer = function(folderId, title) {
             document.getElementById('clickSound').play().catch(()=>{});
             window.currentActiveFolder = folderId; window.folderHistory = [{id: folderId, title: title}];
@@ -378,8 +544,7 @@
 
         window.goBack = function() {
             if (window.folderHistory.length > 1) {
-                window.folderHistory.pop();
-                window.currentActiveFolder = window.folderHistory[window.folderHistory.length - 1].id;
+                window.folderHistory.pop(); window.currentActiveFolder = window.folderHistory[window.folderHistory.length - 1].id;
                 window.updateAddressBar(); window.renderFiles(window.currentActiveFolder);
             }
         };
@@ -390,116 +555,226 @@
             document.getElementById('addressPath').innerText = "C:\\" + current.title.replace('로컬 디스크 (C:) \\ ', '');
         };
 
-        window.renderFiles = function(folderId) {
-            const view = document.getElementById('explorerView');
-            const files = window.config.folders[folderId] || [];
-            view.innerHTML = ''; window.selectedFile = null;
-
-            files.forEach((file) => {
-                const icon = document.createElement('div'); icon.className = 'file-icon';
-                let img = "https://win98icons.alexmeub.com/icons/png/notepad-0.png";
-                if(file.type === 'folder' || folderId === 'folder-photos') img = "https://win98icons.alexmeub.com/icons/png/directory_closed-0.png";
-                if(file.type === 'rp') img = "https://win98icons.alexmeub.com/icons/png/write_wordpad-0.png";
-                if(file.type === 'img') img = "https://win98icons.alexmeub.com/icons/png/image_file-0.png";
-
-                icon.innerHTML = `<img src="${img}"><span class="file-name">${file.title}</span>`;
-                
-                icon.onclick = (e) => {
-                    e.stopPropagation(); document.querySelectorAll('.file-icon').forEach(el => el.classList.remove('selected'));
-                    icon.classList.add('selected'); window.selectedFile = file;
-                };
-
-                icon.ondblclick = () => { file.type === 'folder' ? window.openSubFolder(file.id, file.title) : window.viewDetail(file); };
-                view.appendChild(icon);
-            });
-        };
-
-        window.clearSelection = function(e) {
-            if(e.target.id === 'explorerView') { document.querySelectorAll('.file-icon').forEach(el => el.classList.remove('selected')); window.selectedFile = null; }
-        };
-
         window.closeExplorer = function() { document.getElementById('xpExplorer').style.display = 'none'; };
+        window.clearSelection = function(e) { if(e.target.id === 'explorerView') { document.querySelectorAll('.file-icon').forEach(el => el.classList.remove('selected')); window.selectedFile = null; } };
 
-        // --- 🌟 파일 디테일 뷰어 (메모장 편집 및 이미지 업로드 창) ---
+        window.addNewFolder = async function() {
+            const id = 'folder-' + Date.now();
+            const newFolder = { type: 'folder', title: "새 폴더", id: id, folder: window.currentActiveFolder, createdAt: Date.now() };
+            try {
+                const docRef = await window.addDoc(window.collection(window.db, "files"), newFolder); newFolder.docId = docRef.id;
+                if(!window.config.folders[window.currentActiveFolder]) window.config.folders[window.currentActiveFolder] = [];
+                window.config.folders[window.currentActiveFolder].push(newFolder); window.renderFiles(window.currentActiveFolder);
+            } catch(e) {}
+        };
+
+        window.triggerAddFile = async function() {
+            const isPhotoFolder = window.folderHistory.length > 0 && window.folderHistory[0].id === 'folder-photos';
+            const defaultTitle = isPhotoFolder ? "새 이미지.jpg" : "새 역극.log";
+            const newData = isPhotoFolder ? { type:'img', title: defaultTitle, url:'', folder: window.currentActiveFolder, createdAt: Date.now() } : { type:'txt', title: defaultTitle, content:'', folder: window.currentActiveFolder, createdAt: Date.now() };
+            try {
+                const docRef = await window.addDoc(window.collection(window.db, "files"), newData); newData.docId = docRef.id;
+                if(!window.config.folders[window.currentActiveFolder]) window.config.folders[window.currentActiveFolder] = [];
+                window.config.folders[window.currentActiveFolder].push(newData); window.renderFiles(window.currentActiveFolder);
+            } catch(e) {}
+        };
+
+        window.deleteSelectedItem = async function() {
+            if(!window.selectedFile) return alert("삭제할 항목을 선택하세요.");
+            if(confirm(`'${window.selectedFile.title}' 항목을 삭제하시겠습니까?`)) {
+                if(window.selectedFile.docId && !window.selectedFile.docId.startsWith('doc-')) { try { await window.deleteDoc(window.doc(window.db, "files", window.selectedFile.docId)); } catch(e) {} }
+                window.config.folders[window.currentActiveFolder] = window.config.folders[window.currentActiveFolder].filter(f => f !== window.selectedFile);
+                window.selectedFile = null; window.renderFiles(window.currentActiveFolder);
+            }
+        };
+
+        window.inlineRename = function(fileObj, iconElement) {
+            const nameSpan = iconElement.querySelector('.file-name'); const oldName = fileObj.title;
+            nameSpan.innerHTML = `<input type="text" class="inline-rename-input" value="${oldName}">`;
+            const input = nameSpan.querySelector('input'); input.focus(); input.select();
+            const finishRename = async () => {
+                if(input.dataset.done) return; input.dataset.done = true;
+                const newName = input.value.trim() || oldName;
+                if(newName !== oldName && fileObj.docId && !fileObj.docId.startsWith('doc-')) { try { await window.updateDoc(window.doc(window.db, "files", fileObj.docId), { title: newName }); } catch(e) {} }
+                fileObj.title = newName; window.renderFiles(window.currentActiveFolder);
+            };
+            input.onblur = finishRename; input.onkeydown = (e) => { if(e.key === 'Enter') finishRename(); if(e.key === 'Escape') { input.value = oldName; finishRename(); } };
+        };
+
+        window.renameSelectedItem = function() {
+            if(!window.selectedFile) return alert("이름을 바꿀 항목을 선택하세요.");
+            const selectedEl = document.querySelector('.file-icon.selected');
+            if(selectedEl) window.inlineRename(window.selectedFile, selectedEl);
+        };
+
+        // 🌟 로그 데이터를 예쁘게 뿌려주는 파싱 함수 (이름 상단, 내용 하단, 바탕체 적용)
+        window.parseLogTextToHTML = function(content) {
+            if(!content) return '아직 기록이 없습니다.';
+            const logBlocks = content.split('\n\n').filter(b => b.trim());
+            let html = ''; let lastDate = '';
+
+            logBlocks.forEach(block => {
+                const match = block.match(/^\[(.*?)\s.*?\]\s(.*?)\s:\s([\s\S]*)$/);
+                if(match) {
+                    const dateOnly = match[1]; const name = match[2]; const text = match[3];
+
+                    if (dateOnly !== lastDate) {
+                        html += `<div style="text-align:center; margin: 20px 0; border-bottom: 1px dashed #ccc; line-height: 0.1em;"><span style="background:#fff; padding:0 10px; color:#888; font-size:11px; font-family:'Gulim';">${dateOnly}</span></div>`;
+                        lastDate = dateOnly;
+                    }
+
+                    const side = name === '지칸' ? 'left' : 'right';
+                    const profileImg = name === '지칸' ? window.config.profiles.jikan : window.config.profiles.jiuin;
+                    
+                    html += `
+                    <div style="display:flex; align-items:flex-start; margin-bottom:15px; ${side === 'right' ? 'flex-direction:row-reverse;' : ''}">
+                        <img src="${profileImg}" style="width:40px; height:40px; border-radius:14px; margin: 0 10px; border:1px solid #ddd; object-fit:cover;">
+                        <div style="display:flex; flex-direction:column; max-width:75%; ${side === 'right' ? 'align-items:flex-end;' : 'align-items:flex-start;'}">
+                            <div style="font-size:12px; color:#555; margin-bottom:4px; font-family:'Gulim', sans-serif;"><b>${name}</b></div>
+                            <div style="background:${side === 'right' ? '#fae100' : '#f5f5f5'}; padding:10px 14px; border-radius:8px; font-size:14px; color:#111; word-break:break-all; box-shadow: 1px 1px 3px rgba(0,0,0,0.1);">
+                                ${text.replace(/\n/g, '<br>')}
+                            </div>
+                        </div>
+                    </div>`;
+                } else { html += `<div style="margin-bottom:10px;">${block.replace(/\n/g, '<br>')}</div>`; }
+            });
+            return html;
+        };
+
+        // 🌟 복붙한 텍스트를 [YYYY.MM.DD HH:mm] 이름 : 내용 형태로 변환하는 함수
+        window.formatRawToStandard = function(rawText) {
+            const lines = rawText.split('\n').map(l => l.trim()).filter(l => l);
+            let standardLogs = []; let currentMsg = null;
+
+            lines.forEach(line => {
+                const nameMatch = line.replace('작성자', '').trim();
+                if(nameMatch === '지칸' || nameMatch === '지우인') {
+                    if (currentMsg) standardLogs.push(currentMsg);
+                    currentMsg = { name: nameMatch, date: '', text: [] }; return;
+                }
+                if (currentMsg && /^\d{4}\.\d{2}\.\d{2}\.\s\d{2}:\d{2}$/.test(line)) { currentMsg.date = line; } 
+                else if (line === '답글' || line === '수정|삭제' || line === '수정' || line === '삭제') { /* 스킵 */ } 
+                else if (currentMsg) {
+                    let txt = line; const otherName = currentMsg.name === '지칸' ? '지우인' : '지칸';
+                    if (txt.startsWith(otherName + ' ')) txt = txt.substring(otherName.length + 1).trim();
+                    currentMsg.text.push(txt);
+                }
+            });
+            if (currentMsg) standardLogs.push(currentMsg);
+            return standardLogs.map(log => `[${log.date}] ${log.name} : ${log.text.join(' ')}`).join('\n\n');
+        };
+
+        // 🌟 파일 뷰어 창 (로그 아카이브 UI 및 이미지)
         window.viewDetail = function(file) {
             document.getElementById('clickSound').play().catch(()=>{});
-            let contentHTML = '';
-            let iconSrc = 'https://win98icons.alexmeub.com/icons/png/notepad-0.png';
+            let contentHTML = ''; let iconSrc = 'https://win98icons.alexmeub.com/icons/png/notepad-0.png';
             const popupId = 'window-' + Date.now();
 
             if(file.type === 'txt') {
+                const parsedHTML = window.parseLogTextToHTML(file.content);
                 contentHTML = `
-                    <div style="display:flex; flex-direction:column; height:100%; background:white;">
-                        <div class="xp-menubar" style="background:#ece9d8; border-bottom:1px solid #ccc; padding:2px 5px;">
-                            <span style="cursor:pointer; padding:2px 5px;" onclick="window.saveTextFile('${file.docId}', '${popupId}')">파일(F) - <b>저장</b></span>
+                    <div style="display:flex; flex-direction:column; height:100%; background:#ece9d8;">
+                        <div class="xp-menubar" style="background:#c0c0c0; border-bottom:1px solid #808080; padding:4px 5px; font-weight:bold; font-family:'Gulim';">
+                            <img src="https://win98icons.alexmeub.com/icons/png/write_wordpad-0.png" style="width:14px; vertical-align:middle; margin-right:5px;"> 
+                            아카이브 뷰어 v2.0
                         </div>
-                        <textarea id="txt-${popupId}" style="flex:1; padding:15px; border:none; outline:none; font-family:'Gulim'; font-size:13px; resize:none;">${file.content || ''}</textarea>
+                        
+                        <div id="logScroll" style="flex:6; padding:15px; background:white; color:black; font-family:'Batang', 'BatangChe', serif; font-size:13px; overflow-y:auto; border-bottom:2px solid #808080; line-height:1.6;">${parsedHTML}</div>
+                        
+                        <div style="flex:4; display:flex; flex-direction:column; padding:10px; background:#c0c0c0;">
+                            <div style="font-size:11px; color:#333; margin-bottom:5px; font-family:'Gulim';">↓ 이곳에 복사한 댓글을 붙여넣으세요</div>
+                            <textarea id="paste-${popupId}" style="flex:1; padding:8px; border:2px inset #fff; outline:none; font-family:'Gulim'; font-size:12px; resize:none; color:black; background:#fff;"></textarea>
+                            <div style="text-align:right; margin-top:8px;">
+                                <button class="xp-btn" onclick="window.appendAndSaveLog('${file.docId}', '${popupId}')">자동 변환 & 추가</button>
+                            </div>
+                        </div>
                     </div>`;
             } else if(file.type === 'img') {
                 iconSrc = 'https://win98icons.alexmeub.com/icons/png/image_file-0.png';
                 if(!file.url) {
                     contentHTML = `
-                        <div id="img-body-${popupId}" style="padding:20px; background:#ece9d8; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; color:black;">
+                        <div id="img-body-${popupId}" style="padding:20px; background:#c0c0c0; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; color:black;">
                             <img src="https://win98icons.alexmeub.com/icons/png/image_file-0.png" style="width:48px; margin-bottom:10px;">
-                            <p style="font-size:12px; margin-bottom:10px;">이 이미지 파일은 비어있습니다.<br>업로드할 이미지의 URL을 입력하세요.</p>
-                            <input type="text" id="url-${popupId}" style="width:80%; padding:3px; margin-bottom:15px;" placeholder="https://...">
+                            <p style="font-size:12px; margin-bottom:10px; font-family:'Gulim';">이 이미지 파일은 비어있습니다.<br>업로드할 이미지의 URL을 입력하세요.</p>
+                            <input type="text" id="url-${popupId}" style="width:80%; padding:3px; margin-bottom:15px; border: 2px inset #fff; font-family:'Gulim';" placeholder="https://...">
                             <button class="xp-btn" onclick="window.saveImgUrl('${file.docId}', '${popupId}')">확인(업로드)</button>
                         </div>`;
                 } else {
-                    contentHTML = `<div style="padding:10px; background:#333; height:100%; display:flex; justify-content:center; align-items:center; overflow:auto;"><img src="${file.url}" style="max-width:100%; border:2px inset #fff;"></div>`;
+                    contentHTML = `
+                        <div style="display:flex; flex-direction:column; height:100%;">
+                            <div class="xp-menubar" style="background:#c0c0c0; border-bottom:1px solid #808080; padding:4px 8px; color:black; display:flex; gap:15px; font-weight:bold; font-family:'Gulim';">
+                                <span style="cursor:pointer;" onclick="window.downloadImage('${file.url}', '${file.title}')">다운로드(D)</span>
+                            </div>
+                            <div style="padding:10px; background:#333; flex:1; display:flex; justify-content:center; align-items:center; overflow:auto;">
+                                <img src="${file.url}" style="max-width:100%; border:2px inset #fff;">
+                            </div>
+                        </div>`;
                 }
-            } else if(file.type === 'rp') {
-                contentHTML = `<div style="padding:15px; background:white; color:black; height:100%; overflow-y:auto; font-size:12px;">(기록 로그 표시 영역)</div>`;
             }
 
             const popup = document.createElement('div');
-            popup.className = 'xp-window draggable';
-            popup.id = popupId;
-            popup.style.cssText = `top: ${Math.random()*50 + 150}px; left: ${Math.random()*50 + 250}px; width: 450px; height: 400px; position: absolute; z-index: 1000;`;
-
+            popup.className = 'xp-window draggable'; popup.id = popupId;
+            popup.style.cssText = `top: ${Math.random()*50 + 100}px; left: ${Math.random()*50 + 200}px; width: 450px; height: 500px; position: absolute; z-index: 1000;`;
             popup.innerHTML = `
                 <div class="xp-title-bar drag-handle">
                     <div style="display:flex; align-items:center; gap:8px;"><img src="${iconSrc}" style="width:16px;"><span>${file.title}</span></div>
                     <div class="xp-close-btn" onclick="document.getElementById('${popupId}').remove()">✕</div>
                 </div>
-                <div style="flex:1; background:#ece9d8; border:3px solid #0054e3; border-top:none; display:flex; flex-direction:column;">${contentHTML}</div>
+                <div style="flex:1; background:#c0c0c0; border:2px inset #fff; display:flex; flex-direction:column;">${contentHTML}</div>
             `;
             document.body.appendChild(popup);
         };
 
-        // 메모장 저장 로직
-        window.saveTextFile = async function(docId, popupId) {
-            const textarea = document.getElementById(`txt-${popupId}`);
-            if(!textarea) return;
-            const newContent = textarea.value;
+        // 🌟 로그 추가 및 저장
+        window.appendAndSaveLog = async function(docId, popupId) {
+            const pasteArea = document.getElementById(`paste-${popupId}`);
+            const logArea = document.getElementById('logScroll');
+            const rawData = pasteArea.value.trim();
+            if(!rawData) return;
+
+            const standardText = window.formatRawToStandard(rawData);
             const f = window.findFileByDocId(docId);
-            if(f) f.content = newContent;
             
+            let newContent = (f.content || '').trim();
+            if (newContent) newContent += '\n\n';
+            newContent += standardText;
+
+            f.content = newContent;
+            logArea.innerHTML = window.parseLogTextToHTML(newContent);
+            pasteArea.value = '';
+
             if(docId && !docId.startsWith('doc-')) {
                 try {
                     await window.updateDoc(window.doc(window.db, "files", docId), { content: newContent });
-                    alert("저장되었습니다!");
+                    logArea.scrollTop = logArea.scrollHeight;
                 } catch(e) { alert("저장 실패!"); }
-            } else { alert("저장되었습니다! (임시 파일)"); }
+            } else { logArea.scrollTop = logArea.scrollHeight; }
         };
 
-        // 이미지 URL 저장 로직
+        window.downloadImage = function(url, title) {
+            if(!url) { alert("다운로드할 이미지가 없습니다."); return; }
+            fetch(url).then(resp => resp.blob()).then(blob => {
+                const blobUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = blobUrl; a.download = title || 'download_image.jpg';
+                document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(blobUrl);
+            }).catch(() => { window.open(url, '_blank'); });
+        };
+
         window.saveImgUrl = async function(docId, popupId) {
-            const input = document.getElementById(`url-${popupId}`);
-            const val = input.value.trim();
-            if(!val) return;
-            
-            const f = window.findFileByDocId(docId);
-            if(f) f.url = val;
-            
-            if(docId && !docId.startsWith('doc-')) {
-                try { await window.updateDoc(window.doc(window.db, "files", docId), { url: val }); } catch(e) { alert("저장 오류!"); return; }
-            }
-            // 창 내용 이미지 뷰어로 즉시 교체
+            const input = document.getElementById(`url-${popupId}`); const val = input.value.trim(); if(!val) return;
+            const f = window.findFileByDocId(docId); if(f) f.url = val;
+            if(docId && !docId.startsWith('doc-')) { try { await window.updateDoc(window.doc(window.db, "files", docId), { url: val }); } catch(e) {} }
             const body = document.getElementById(`img-body-${popupId}`);
-            if(body) {
-                body.parentElement.innerHTML = `<div style="padding:10px; background:#333; height:100%; display:flex; justify-content:center; align-items:center; overflow:auto;"><img src="${val}" style="max-width:100%; border:2px inset #fff;"></div>`;
+            if(body) { 
+                body.parentElement.innerHTML = `
+                    <div style="display:flex; flex-direction:column; height:100%;">
+                        <div class="xp-menubar" style="background:#c0c0c0; border-bottom:1px solid #808080; padding:4px 8px; color:black; display:flex; gap:15px; font-weight:bold; font-family:'Gulim';">
+                            <span style="cursor:pointer;" onclick="window.downloadImage('${val}', 'image.jpg')">다운로드(D)</span>
+                        </div>
+                        <div style="padding:10px; background:#333; flex:1; display:flex; justify-content:center; align-items:center; overflow:auto;"><img src="${val}" style="max-width:100%; border:2px inset #fff;"></div>
+                    </div>`; 
             }
+            window.renderFiles(window.currentActiveFolder); 
         };
 
         window.initDraggable = function() {
@@ -508,14 +783,14 @@
                 if (e.target.closest(".drag-handle")) {
                     activeEl = e.target.closest(".draggable");
                     initX = e.clientX - (activeEl.dataset.x || 0); initY = e.clientY - (activeEl.dataset.y || 0);
-                    activeEl.style.zIndex = 1000;
+                    activeEl.style.zIndex = parseInt(activeEl.style.zIndex || 100) + 10;
                 }
             });
             document.addEventListener("mousemove", (e) => {
                 if (activeEl) { e.preventDefault(); curX = e.clientX - initX; curY = e.clientY - initY;
                     activeEl.dataset.x = curX; activeEl.dataset.y = curY; activeEl.style.transform = `translate3d(${curX}px, ${curY}px, 0)`; }
             });
-            document.addEventListener("mouseup", () => { if(activeEl){ activeEl.style.zIndex = 100; activeEl = null; } });
+            document.addEventListener("mouseup", () => { activeEl = null; });
         };
     </script>
 </body>
