@@ -101,8 +101,8 @@
         .xp-btn:active { border-top: 1px solid #000; border-left: 1px solid #000; border-right: 1px solid #fff; border-bottom: 1px solid #fff; box-shadow: inset 1px 1px #808080, inset -1px -1px #dfdfdf; padding: 4px 19px 2px 21px; }
 
         .d-day-widget { position: absolute; top: 30px; right: 40px; z-index: 10; text-align: right; }
-        .d-day-label { font-size: 14px; color: #aaa; letter-spacing: 2px; text-shadow: 1px 1px 2px #000; }
-        #ddayCount { font-size: 3rem; color: #fff; letter-spacing: 2px; text-shadow: 2px 2px 0px #000, -1px -1px 0px rgba(255,255,255,0.3); margin-top: 5px; }
+        .d-day-label { font-size: 14px; color: #ddd; letter-spacing: 2px; text-shadow: 1px 1px 2px #000; }
+        #ddayCount { font-size: 3rem; color: #ff3366; letter-spacing: 2px; text-shadow: 2px 2px 0px #000, -1px -1px 0px rgba(255,255,255,0.3); margin-top: 5px; }
 
         .taskbar { position: fixed; bottom: 0; left: 0; width: 100%; height: 28px; background: #c0c0c0; border-top: 2px solid #dfdfdf; box-shadow: inset 0 1px #fff; display: flex; justify-content: space-between; align-items: center; z-index: 10000; padding: 2px; font-family:'Gulim'; }
         .start-btn { height: 100%; padding: 0 6px; display: flex; align-items: center; gap: 4px; background: #c0c0c0; border-top: 1px solid #fff; border-left: 1px solid #fff; border-right: 1px solid #000; border-bottom: 1px solid #000; box-shadow: inset 1px 1px #dfdfdf, inset -1px -1px #808080; font-weight: bold; font-size: 11px; color: black; }
@@ -130,7 +130,7 @@
 </head>
 <body onload="window.init()">
 
-    <audio id="clickSound" src="https://www.soundjay.com/button/sounds/button-16.mp3" preload="auto"></audio>
+    <audio id="clickSound" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
 
     <div class="vignette"></div>
     <div class="bg-container"><img src="https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdna%2Fbo0278%2FdJMcafL32e7%2FAAAAAAAAAAAAAAAAAAAAABlHjiaQc4NH3u1mNQVjRHfd-DvmuBcNJd2YohedpmLn%2Fimg.png%3Fcredential%3DyqXZFxpELC7KVnFOS48ylbz2pIh7yKj8%26expires%3D1774969199%26allow_ip%3D%26allow_referer%3D%26signature%3DmsuoDZ%252FDOFMkyKffXpYXOGq0wjg%253D" class="bg-image"><div class="fade-overlay"></div></div>
@@ -272,11 +272,6 @@
             window.updateClock(); setInterval(window.updateClock, 1000); 
             window.initGlobalClickSound(); 
             window.initGlitchEffect();
-            // 고정 창들에 리사이즈 핸들
-            ['wmpPlayer','xpExplorer'].forEach(id => {
-                const el = document.getElementById(id);
-                if(el) window.makeResizable(el);
-            });
 
             try { 
                 await window.loadFilesFromFirebase(); 
@@ -340,21 +335,20 @@
         window.spawnCIHVirus = function() {
             const layer = document.getElementById('virusPopups');
             const virusImgUrl = "https://upload.wikimedia.org/wikipedia/commons/0/07/CIH.png";
-            // 두 창이 잘 보이도록 가로로 충분히 분리
-            const positions = [
-                { right: '560px', top: '25%' },
-                { right: '200px', top: '32%' },
-            ];
-            positions.forEach((pos, i) => {
+            for(let i=0; i<3; i++) {
                 const popup = document.createElement('div');
                 popup.className = 'xp-window draggable';
-                popup.style.cssText = `position:fixed; right:${pos.right}; top:${pos.top}; left:auto; width:300px; z-index:${500+i};`;
+                popup.style.right = (50 + (i * 30)) + 'px'; 
+                popup.style.bottom = (80 + (i * 40)) + 'px';
+                popup.style.left = 'auto'; popup.style.top = 'auto'; 
+                popup.style.zIndex = '500'; 
+                popup.style.width = '320px';
                 popup.innerHTML = `
-                    <div class="xp-title-bar drag-handle"><span>Warning</span><div class="xp-close-btn" onclick="this.closest('.draggable').remove()">✕</div></div>
+                    <div class="xp-title-bar drag-handle"><span>Warning</span><div class="xp-close-btn" onclick="this.parentElement.parentElement.remove()">✕</div></div>
                     <div style="padding:0; background:black; border-bottom:2px solid #fff;"><img src="${virusImgUrl}" style="width:100%; display:block; border:1px solid #808080;"></div>
                 `;
                 layer.appendChild(popup);
-            });
+            }
         };
 
         window.openCalendar = function() {
@@ -376,7 +370,6 @@
                 <div class="calendar-grid" id="calGrid"></div>
             `;
             document.body.appendChild(popup);
-            window.makeResizable(popup);
             window.renderCalendar();
         };
 
@@ -436,7 +429,6 @@
                 </div>
             `;
             document.body.appendChild(popup);
-            window.makeResizable(popup);
             document.getElementById('messengerScroll').scrollTop = document.getElementById('messengerScroll').scrollHeight;
             document.getElementById('msgInput').addEventListener('keypress', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); window.sendMsg(); } });
         };
@@ -571,18 +563,12 @@
 
         window.triggerAddFile = async function() {
             const isPhotoFolder = window.folderHistory.length > 0 && window.folderHistory[0].id === 'folder-photos';
-            const newData = isPhotoFolder 
-                ? { type:'img', title: "새 이미지.jpg", url:'', folder: window.currentActiveFolder } 
-                : { type:'txt', title: "새 역극.log", content:'', folder: window.currentActiveFolder };
+            const newData = isPhotoFolder ? { type:'img', title: "새 이미지.jpg", url:'', folder: window.currentActiveFolder } : { type:'txt', title: "새 역극.log", content:'', folder: window.currentActiveFolder };
             try {
-                const docRef = await window.addDoc(window.collection(window.db, "files"), newData); 
-                newData.docId = docRef.id;
-            } catch(e) { 
-                newData.docId = 'doc-' + Date.now(); 
-            }
-            if(!window.config.folders[window.currentActiveFolder]) window.config.folders[window.currentActiveFolder] = [];
-            window.config.folders[window.currentActiveFolder].push(newData); 
-            window.renderFiles(window.currentActiveFolder);
+                const docRef = await window.addDoc(window.collection(window.db, "files"), newData); newData.docId = docRef.id;
+                if(!window.config.folders[window.currentActiveFolder]) window.config.folders[window.currentActiveFolder] = [];
+                window.config.folders[window.currentActiveFolder].push(newData); window.renderFiles(window.currentActiveFolder);
+            } catch(e) {}
         };
 
         window.deleteSelectedItem = async function() {
@@ -613,127 +599,85 @@
             if(selectedEl) window.inlineRename(window.selectedFile, selectedEl);
         };
 
-        // ✅ 로그 → 카톡 말풍선 HTML (지칸=왼쪽흰, 지우인=오른쪽노랑)
+        // 🌟 수정된 로그 파싱 로직: 정규식 더 관대하게 수정 & 바탕체 적용
         window.parseLogTextToHTML = function(content) {
             if(!content) return '아직 기록이 없습니다.';
             const logBlocks = content.split('\n\n').filter(b => b.trim());
             let html = ''; let lastDate = '';
 
             logBlocks.forEach(block => {
-                // [날짜 시간] 이름 : 내용  또는  [알수없음] 이름 : 내용
-                const match = block.match(/^\[([^\]]*)\]\s*(.+?)\s*:\s*([\s\S]*)$/);
+                // 날짜와 시간을 찾을 수 있게 좀 더 유연한 정규식으로 변경
+                const match = block.match(/^\[(.*?)\s+(\d{2}:\d{2})\]\s+(.*?)\s+:\s+([\s\S]*)$/);
+                
                 if(match) {
-                    const bracket = match[1].trim();
-                    const name    = match[2].trim();
-                    const text    = match[3].trim();
+                    let fullDate = match[1]; 
+                    if (fullDate.endsWith('.')) fullDate = fullDate.slice(0, -1); // 날짜 끝에 마침표 있으면 제거
+                    const time = match[2]; const name = match[3]; const text = match[4];
 
-                    const dtMatch = bracket.match(/^(\d{4}\.\d{2}\.\d{2}\.?)\s+(\d{2}:\d{2})$/);
-                    const fullDate = dtMatch ? dtMatch[1].replace(/\.$/, '') : '';
-                    const time     = dtMatch ? dtMatch[2] : '';
-
-                    if (fullDate && fullDate !== lastDate) {
-                        html += `<div style="text-align:center;margin:20px 0;"><span style="background:#f0f0f0;padding:3px 12px;border-radius:20px;color:#888;font-size:11px;font-family:'Gulim';">${fullDate}</span></div>`;
+                    if (fullDate !== lastDate) {
+                        html += `<div style="text-align:center; margin: 20px 0; border-bottom: 1px dashed #ccc; line-height: 0.1em;"><span style="background:#fff; padding:0 10px; color:#888; font-size:11px; font-family:'Gulim';">${fullDate}</span></div>`;
                         lastDate = fullDate;
                     }
 
-                    const isRight = (name === '지우인');
-                    const profileImg = name === '지칸' ? window.config.profiles.jikan
-                                     : name === '지우인' ? window.config.profiles.jiuin
-                                     : window.config.profiles.jikan;
-
+                    const side = name === '지우인' ? 'right' : 'left';
+                    const profileImg = name === '지칸' ? window.config.profiles.jikan : (name === '지우인' ? window.config.profiles.jiuin : window.config.profiles.jikan);
+                    
                     html += `
-                    <div style="display:flex;align-items:flex-start;margin-bottom:16px;flex-direction:${isRight?'row-reverse':'row'};">
-                        <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;${isRight?'margin-left:8px;':'margin-right:8px;'}">
-                            <img src="${profileImg}" style="width:42px;height:42px;border-radius:14px;border:1px solid #ddd;object-fit:cover;">
-                            <span style="font-size:10px;color:#666;margin-top:3px;font-family:'Gulim';font-weight:bold;">${name}</span>
-                        </div>
-                        <div style="display:flex;flex-direction:column;max-width:68%;align-items:${isRight?'flex-end':'flex-start'};">
-                            <div style="background:${isRight?'#fae100':'#f5f5f5'};padding:10px 14px;border-radius:${isRight?'14px 2px 14px 14px':'2px 14px 14px 14px'};font-size:13px;color:#111;word-break:break-word;box-shadow:1px 1px 4px rgba(0,0,0,0.1);font-family:'Batang','BatangChe',serif;line-height:1.65;">
-                                ${text.replace(/\n/g,'<br>')}
+                    <div style="display:flex; align-items:flex-start; margin-bottom:15px; ${side === 'right' ? 'flex-direction:row-reverse;' : ''}">
+                        <img src="${profileImg}" style="width:40px; height:40px; border-radius:14px; margin: 0 10px; border:1px solid #ddd; object-fit:cover;">
+                        <div style="display:flex; flex-direction:column; max-width:75%; ${side === 'right' ? 'align-items:flex-end;' : 'align-items:flex-start;'}">
+                            <div style="font-size:12px; color:#555; margin-bottom:4px; font-family:'Gulim', sans-serif;"><b>${name}</b></div>
+                            <div style="background:${side === 'right' ? '#fae100' : '#f5f5f5'}; padding:10px 14px; border-radius:8px; font-size:14px; color:#111; word-break:break-all; box-shadow: 1px 1px 3px rgba(0,0,0,0.1); font-family:'Batang', 'BatangChe', serif;">
+                                ${text.replace(/\n/g, '<br>')}
                             </div>
-                            ${time?`<span style="font-size:10px;color:#bbb;margin-top:3px;font-family:'Gulim';">${time}</span>`:''}
                         </div>
                     </div>`;
-                } else {
-                    html += `<div style="margin-bottom:8px;font-family:'Gulim';font-size:11px;color:#ccc;">${block.replace(/\n/g,'<br>')}</div>`;
+                } else { 
+                    html += `<div style="margin-bottom:10px; font-family:'Batang', 'BatangChe', serif;">${block.replace(/\n/g, '<br>')}</div>`; 
                 }
             });
             return html;
         };
 
-        // ✅ 카페 댓글 자동변환 (프로필\n닉네임(작성자)\n내용 양식)
+        // 🌟 수정된 자동 변환기: 오류 나지 않게 빈 줄 처리 강화
         window.formatRawToStandard = function(rawText) {
-            if (!rawText || !rawText.trim()) return '';
+            const lines = rawText.split('\n').map(l => l.trim()).filter(l => l);
+            let standardLogs = []; let currentMsg = null;
 
-            const lines = rawText.split('\n').map(l => l.trim());
-            const results = [];
-
-            // 첫 줄이 이미 [날짜] 이름 : 내용 포맷이면 그대로 반환
-            if (lines[0].match(/^\[\d{4}/)) return rawText;
-
-            // 닉네임으로 인식할 패턴: 한글/영문 2~15자, 끝에 '작성자' 붙을 수도 있음
-            // '프로필', 날짜패턴, '답글', '수정|삭제' 등은 제외
-            const skipWords = new Set(['프로필', '답글', '수정', '삭제', '수정|삭제', '좋아요', '신고']);
-            const isDateLine = l => /\d{4}\.\d{2}\.\d{2}/.test(l);
-            const isSkip = l => skipWords.has(l) || isDateLine(l) || l === '';
-            const isName = l => {
-                const clean = l.replace('작성자', '').trim();
-                return !isSkip(clean) && /^[가-힣a-zA-Z0-9_]{2,15}$/.test(clean);
-            };
-
-            let i = 0;
-            while (i < lines.length) {
-                const line = lines[i];
-
-                // '프로필' 라인 → 다음 줄이 닉네임일 신호
-                if (line === '프로필') {
-                    i++;
-                    if (i >= lines.length) break;
-
-                    const nameLine = lines[i];
-                    if (!isName(nameLine)) { i++; continue; }
-
-                    const name = nameLine.replace('작성자', '').trim();
-                    i++;
-
-                    // 날짜/답글/수정|삭제 스킵
-                    while (i < lines.length && isSkip(lines[i])) i++;
-
-                    // 내용 수집: 다음 '프로필' 또는 끝까지
-                    const contentLines = [];
-                    while (i < lines.length && lines[i] !== '프로필') {
-                        const l = lines[i];
-                        if (!isSkip(l)) {
-                            // 본문 앞 상대방 이름 태그 제거: "지우인 (내용)" → "(내용)"
-                            let text = l;
-                            const tagMatch = text.match(/^([가-힣a-zA-Z]{2,10})\s+(.+)$/);
-                            if (tagMatch && tagMatch[1] !== name && !isDateLine(tagMatch[1])) {
-                                text = tagMatch[2].trim();
-                            }
-                            contentLines.push(text);
-                        }
-                        i++;
-                    }
-
-                    if (contentLines.length > 0) {
-                        results.push({ name, text: contentLines.join('\n') });
-                    }
-                } else {
-                    i++;
+            lines.forEach(line => {
+                const nameMatch = line.replace('작성자', '').trim();
+                
+                if(nameMatch === '지칸' || nameMatch === '지우인') {
+                    if (currentMsg && currentMsg.text.length > 0) standardLogs.push(currentMsg);
+                    currentMsg = { name: nameMatch, date: '', text: [] }; 
+                    return;
                 }
-            }
-
-            // 날짜가 없을 때는 '알수없음' 대신 그냥 비워서 포맷
-            if (results.length === 0) return rawText;
-
-            // 날짜 추출 시도 (원문에서)
-            const globalDate = rawText.match(/(\d{4}\.\d{2}\.\d{2})/);
-            const globalTime = rawText.match(/(\d{2}:\d{2})/);
-            const dateStr = globalDate ? globalDate[1] : '';
-            const timeStr = globalTime ? globalTime[1] : '';
-            const bracket = dateStr && timeStr ? `${dateStr} ${timeStr}` : (dateStr || '날짜미상');
-
-            return results.map(r => `[${bracket}] ${r.name} : ${r.text}`).join('\n\n');
+                
+                const dateMatch = line.match(/^(\d{4}\.\d{2}\.\d{2}\.?)\s+(\d{2}:\d{2})$/);
+                if (currentMsg && dateMatch) { 
+                    currentMsg.date = line; 
+                } 
+                else if (line === '답글' || line === '수정|삭제' || line === '수정' || line === '삭제') { 
+                    /* 스킵 */ 
+                } 
+                else if (currentMsg) {
+                    let txt = line; 
+                    const otherName = currentMsg.name === '지칸' ? '지우인' : '지칸';
+                    const nameRegex = new RegExp('^' + otherName + '\\s*');
+                    txt = txt.replace(nameRegex, '').trim(); // 이름으로 시작하는 태그 지우기
+                    currentMsg.text.push(txt);
+                } else {
+                    // 예외 처리용 (그냥 일반 텍스트 붙여넣었을 때)
+                    currentMsg = { name: '시스템', date: '', text: [line] };
+                }
+            });
+            if (currentMsg && currentMsg.text.length > 0) standardLogs.push(currentMsg);
+            
+            return standardLogs.map(log => {
+                if (log.name === '시스템') return log.text.join('\n');
+                const d = log.date || "알수없음";
+                return `[${d}] ${log.name} : ${log.text.join('\n')}`;
+            }).join('\n\n');
         };
 
         // 🌟 뷰어 UI (무한으로 늘어나는 버그 min-height: 0 으로 완전 해결)
@@ -765,11 +709,26 @@
                 iconSrc = 'https://win98icons.alexmeub.com/icons/png/image_file-0.png';
                 if(!file.url) {
                     contentHTML = `
-                        <div id="img-body-${popupId}" style="padding:20px; background:#c0c0c0; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; color:black;">
-                            <img src="https://win98icons.alexmeub.com/icons/png/image_file-0.png" style="width:48px; margin-bottom:10px;">
-                            <p style="font-size:12px; margin-bottom:10px; font-family:'Gulim';">이미지 파일이 비어있습니다.<br>업로드할 URL을 입력하세요.</p>
-                            <input type="text" id="url-${popupId}" style="width:80%; padding:3px; margin-bottom:15px; border: 2px inset #fff; font-family:'Gulim';" placeholder="https://...">
-                            <button class="xp-btn" onclick="window.saveImgUrl('${file.docId}', '${popupId}')">확인(업로드)</button>
+                        <div id="img-body-${popupId}" style="padding:20px; background:#c0c0c0; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; color:black; gap:10px; overflow-y:auto;">
+                            <img src="https://win98icons.alexmeub.com/icons/png/image_file-0.png" style="width:48px;">
+                            <p style="font-size:12px; margin:0; font-family:'Gulim'; text-align:center;">이미지를 선택하거나 URL을 입력하세요.</p>
+
+                            <div style="width:85%; background:white; border:2px inset #fff; padding:12px; display:flex; flex-direction:column; gap:8px; align-items:center; box-sizing:border-box;">
+                                <div style="font-size:11px; font-family:'Gulim'; color:#333; font-weight:bold; align-self:flex-start;">&#128193; 내 컴퓨터에서 선택</div>
+                                <input type="file" id="fileInput-${popupId}" accept="image/*" style="display:none;" onchange="window.handleFileUpload('${file.docId}', '${popupId}', this)">
+                                <button class="xp-btn" style="width:100%;" onclick="document.getElementById('fileInput-${popupId}').click()">파일 선택...</button>
+                                <div id="upload-progress-${popupId}" style="font-size:11px; font-family:'Gulim'; color:#0000aa; display:none;"></div>
+                            </div>
+
+                            <div style="width:85%; display:flex; align-items:center; gap:6px; font-family:'Gulim'; font-size:11px; color:#888;">
+                                <div style="flex:1; height:1px; background:#bbb;"></div>또는<div style="flex:1; height:1px; background:#bbb;"></div>
+                            </div>
+
+                            <div style="width:85%; background:white; border:2px inset #fff; padding:12px; display:flex; flex-direction:column; gap:8px; box-sizing:border-box;">
+                                <div style="font-size:11px; font-family:'Gulim'; color:#333; font-weight:bold;">&#128279; URL로 입력</div>
+                                <input type="text" id="url-${popupId}" style="border:2px inset #fff; padding:3px 5px; font-family:'Gulim'; font-size:11px; color:black; outline:none; width:100%; box-sizing:border-box;" placeholder="https://...">
+                                <button class="xp-btn" onclick="window.saveImgUrl('${file.docId}', '${popupId}')">URL로 등록</button>
+                            </div>
                         </div>`;
                 } else {
                     contentHTML = `
@@ -786,16 +745,15 @@
 
             const popup = document.createElement('div');
             popup.className = 'xp-window draggable'; popup.id = popupId;
-            popup.style.cssText = `top: ${Math.random()*50 + 100}px; left: ${Math.random()*50 + 200}px; width: 450px; height: 520px; position: absolute; z-index: 1000; overflow:visible;`;
+            popup.style.cssText = `top: ${Math.random()*50 + 100}px; left: ${Math.random()*50 + 200}px; width: 450px; height: 500px; position: absolute; z-index: 1000;`;
             popup.innerHTML = `
                 <div class="xp-title-bar drag-handle">
                     <div style="display:flex; align-items:center; gap:8px;"><img src="${iconSrc}" style="width:16px;"><span>${file.title}</span></div>
                     <div class="xp-close-btn" onclick="document.getElementById('${popupId}').remove()">✕</div>
                 </div>
-                <div style="flex:1; background:#c0c0c0; border:2px inset #fff; display:flex; flex-direction:column; min-height:0; overflow:hidden;">${contentHTML}</div>
+                <div style="flex:1; background:#c0c0c0; border:2px inset #fff; display:flex; flex-direction:column; min-height:0;">${contentHTML}</div>
             `;
             document.body.appendChild(popup);
-            window.makeResizable(popup);
         };
 
         window.editRawLog = function(docId, popupId) {
@@ -848,6 +806,56 @@
             }).catch(() => { window.open(url, '_blank'); });
         };
 
+        // ✅ 로컬 파일 → base64 변환 → Firebase 저장
+        window.handleFileUpload = async function(docId, popupId, input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const progress = document.getElementById(`upload-progress-${popupId}`);
+            if (progress) { progress.style.display = 'block'; progress.textContent = '변환 중...'; }
+
+            // FileReader로 base64 변환
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const base64 = e.target.result; // "data:image/png;base64,..."
+
+                if (progress) progress.textContent = '저장 중...';
+
+                // Firebase에 base64 저장 (url 필드에)
+                const f = window.findFileByDocId(docId);
+                if (f) { f.url = base64; f.title = file.name || f.title; }
+
+                if (docId && !docId.startsWith('doc-')) {
+                    try {
+                        await window.updateDoc(window.doc(window.db, "files", docId), { url: base64, title: file.name || '' });
+                    } catch(e) {
+                        if (progress) { progress.style.color = 'red'; progress.textContent = '저장 실패 (파일이 너무 클 수 있음). 로컬에만 표시됩니다.'; }
+                    }
+                }
+
+                // 뷰어를 이미지 표시 화면으로 교체
+                const body = document.getElementById(`img-body-${popupId}`);
+                if (body) {
+                    body.parentElement.innerHTML = `
+                        <div style="display:flex; flex-direction:column; height:100%;">
+                            <div class="xp-menubar" style="background:#c0c0c0; border-bottom:1px solid #808080; padding:4px 8px; color:black; display:flex; gap:15px; font-weight:bold; font-family:'Gulim';">
+                                <span style="cursor:pointer;" onclick="window.downloadImage('${base64}', '${file.name}')">다운로드(D)</span>
+                            </div>
+                            <div style="padding:10px; background:#333; flex:1; display:flex; justify-content:center; align-items:center; overflow:auto;">
+                                <img src="${base64}" style="max-width:100%; border:2px inset #fff;">
+                            </div>
+                        </div>`;
+                }
+                window.renderFiles(window.currentActiveFolder);
+            };
+
+            reader.onerror = function() {
+                if (progress) { progress.style.color = 'red'; progress.textContent = '파일 읽기 실패.'; }
+            };
+
+            reader.readAsDataURL(file);
+        };
+
         window.saveImgUrl = async function(docId, popupId) {
             const input = document.getElementById(`url-${popupId}`); const val = input.value.trim(); if(!val) return;
             const f = window.findFileByDocId(docId); if(f) f.url = val;
@@ -871,6 +879,7 @@
                 if (e.target.closest(".drag-handle")) {
                     activeEl = e.target.closest(".draggable");
                     initX = e.clientX - (activeEl.dataset.x || 0); initY = e.clientY - (activeEl.dataset.y || 0);
+                    // 🌟 드래그 창 클릭 시 항상 맨 위로 올라오게
                     activeEl.style.zIndex = parseInt(activeEl.style.zIndex || 100) + 10;
                 }
             });
@@ -879,26 +888,6 @@
                     activeEl.dataset.x = curX; activeEl.dataset.y = curY; activeEl.style.transform = `translate3d(${curX}px, ${curY}px, 0)`; }
             });
             document.addEventListener("mouseup", () => { activeEl = null; });
-        };
-
-        // 🪟 우하단 드래그 리사이즈
-        window.makeResizable = function(el) {
-            const handle = document.createElement('div');
-            handle.style.cssText = `position:absolute;right:0;bottom:0;width:14px;height:14px;cursor:se-resize;z-index:9999;
-                background:linear-gradient(135deg,transparent 40%,#808080 40%,#808080 50%,transparent 50%,transparent 65%,#808080 65%,#808080 75%,transparent 75%);`;
-            el.appendChild(handle);
-            let sx, sy, sw, sh;
-            handle.addEventListener('mousedown', e => {
-                e.stopPropagation(); e.preventDefault();
-                sx=e.clientX; sy=e.clientY; sw=el.offsetWidth; sh=el.offsetHeight;
-                const onMove = e => {
-                    el.style.width  = Math.max(300, sw+(e.clientX-sx))+'px';
-                    el.style.height = Math.max(200, sh+(e.clientY-sy))+'px';
-                };
-                const onUp = () => { document.removeEventListener('mousemove',onMove); document.removeEventListener('mouseup',onUp); };
-                document.addEventListener('mousemove',onMove);
-                document.addEventListener('mouseup',onUp);
-            });
         };
     </script>
 </body>
