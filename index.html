@@ -28,7 +28,7 @@
             user-select: none;
         }
 
-        /* 0. 화면 효과 */
+        /* 화면 효과 */
         body::before {
             content: "";
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -41,7 +41,7 @@
             pointer-events: none; z-index: 9998;
         }
 
-        /* 배경 이미지 (1920x1080 대응) */
+        /* 배경 이미지 */
         .bg-container {
             position: fixed; top: 0; right: 0;
             width: 75%; height: 100%;
@@ -54,7 +54,7 @@
             z-index: 2;
         }
 
-        /* 대각선 카톡 루프 */
+        /* 카톡 루프 */
         .chat-stream {
             position: fixed; top: -45%; left: -5%;
             width: 55%; height: 200%;
@@ -158,15 +158,7 @@
         ::-webkit-scrollbar-thumb { background: #d4d0c8; border: 1px solid #fff; box-shadow: inset -1px -1px 1px rgba(0,0,0,0.2); }
     </style>
 </head>
-<body onload="init()">
-
-
-<div id="fileModal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-[9999]">
-    <div class="bg-white max-w-3xl w-full max-h-[90%] overflow-auto p-4 relative">
-        <span onclick="closeModal()" class="absolute top-2 right-3 cursor-pointer text-xl">✕</span>
-        <div id="modalContent"></div>
-    </div>
-</div>
+<body onload="window.init()">
 
     <div class="vignette"></div>
 
@@ -179,23 +171,21 @@
         <div class="chat-track" id="chatTrack"></div>
     </div>
 
-    <!-- 바탕화면 아이콘 -->
     <div class="desktop-icons">
-        <div class="icon-item" onclick="openExplorer('folder-text', '기록 아카이브')">
+        <div class="icon-item" onclick="window.openExplorer('folder-text', '기록 아카이브')">
             <img src="https://win98icons.alexmeub.com/icons/png/directory_open_file_mydocs-4.png" class="icon-img">
             <span class="icon-label">기록 폴더</span>
         </div>
-        <div class="icon-item" onclick="openExplorer('folder-photos', '사진첩')">
+        <div class="icon-item" onclick="window.openExplorer('folder-photos', '사진첩')">
             <img src="https://win98icons.alexmeub.com/icons/png/directory_closed-4.png" class="icon-img">
             <span class="icon-label">사진첩</span>
         </div>
-        <div class="icon-item" onclick="openExplorer('trash', '휴지통')">
+        <div class="icon-item" onclick="window.openExplorer('trash', '휴지통')">
             <img src="https://win98icons.alexmeub.com/icons/png/recycle_bin_empty-4.png" class="icon-img">
             <span class="icon-label">휴지통</span>
         </div>
     </div>
 
-    <!-- WMP 플레이어 -->
     <div class="wmp-player draggable" id="wmpPlayer">
         <div class="wmp-title drag-handle">
             <img src="https://win98icons.alexmeub.com/icons/png/mmsys_cp-0.png" style="width:14px;">
@@ -216,7 +206,7 @@
             <div style="width:100%; height:8px; background:#808080; border:1px inset #fff;"></div>
             <div class="wmp-buttons">
                 <div class="wmp-btn"><i class="fas fa-play"></i></div>
-                <div class="wmp-btn" onclick="toggleMusic()"><i class="fas fa-pause"></i></div>
+                <div class="wmp-btn" onclick="window.toggleMusic()"><i class="fas fa-pause"></i></div>
                 <div class="wmp-btn"><i class="fas fa-stop"></i></div>
                 <div style="width:1px; background:#808080; height:15px; margin:0 5px;"></div>
                 <div class="wmp-btn"><i class="fas fa-volume-up"></i></div>
@@ -224,24 +214,23 @@
         </div>
     </div>
 
-    <!-- 감염 경고 팝업 (XP 스타일) -->
     <div id="virusPopups"></div>
 
-    <!-- XP 탐색기 -->
     <div id="xpExplorer" class="xp-window draggable">
         <div class="xp-title-bar drag-handle">
             <div style="display:flex; align-items:center; gap:8px;">
                 <img src="https://win98icons.alexmeub.com/icons/png/directory_closed-0.png" style="width:16px;">
                 <span id="explorerTitle">탐색기</span>
             </div>
-            <div class="xp-close-btn" onclick="closeExplorer()">✕</div>
+            <div class="xp-close-btn" onclick="window.closeExplorer()">✕</div>
         </div>
         <div class="xp-body">
             <div class="xp-sidebar">
                 <div class="sidebar-box">
                     <b>시스템 작업</b><br>
-                    <span class="cursor-pointer underline" onclick="addNewFolder()">새 폴더 생성</span><br>
-                    <span class="cursor-pointer underline" onclick="triggerAddFile()">파일 추가</span>
+                    <span class="cursor-pointer underline font-bold" id="backBtn" onclick="window.goBack()" style="display:none; color: #e91e63;">⬅️ 상위 폴더로</span><br>
+                    <span class="cursor-pointer underline" onclick="window.addNewFolder()">새 폴더 생성</span><br>
+                    <span class="cursor-pointer underline" onclick="window.triggerAddFile()">파일 추가</span>
                 </div>
                 <div class="sidebar-box"><b>기타 위치</b><br>내 문서<br>바탕 화면</div>
             </div>
@@ -251,8 +240,30 @@
 
     <audio id="clickSound" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
 
-    <script>
-        const config = {
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+        // 사용자님의 파이어베이스 설정
+        const firebaseConfig = {
+            apiKey: "AIzaSyAzy2_YfNKk2vPzU6l1AwjCC1_TepXYAsU",
+            authDomain: "inukan-19e53.firebaseapp.com",
+            projectId: "inukan-19e53",
+            storageBucket: "inukan-19e53.firebasestorage.app",
+            messagingSenderId: "1035051352954",
+            appId: "1:1035051352954:web:a06a37592846ac41710cc3",
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.db = db;
+        window.addDoc = addDoc;
+        window.getDocs = getDocs;
+        window.collection = collection;
+
+        // 환경 설정 데이터
+        window.config = {
             profiles: {
                 jikan: "https://i.postimg.cc/wjYnMhTH/jikanpeusa.png",
                 jiuin: "https://i.postimg.cc/QVGYB3D4/peusa.png"
@@ -297,19 +308,25 @@
             }
         };
 
-        let currentActiveFolder = '';
-        let currentRPData = [];
+        window.currentActiveFolder = '';
+        window.folderHistory = [];
+        window.currentRPData = [];
 
-        async function init() {
-    await loadFilesFromFirebase(); // ⭐ 이거 추가
-    initChatLoop();
-    spawnVirusPopups();
-    initDraggable();
-        }
+        window.init = async function() {
+            window.initChatLoop();
+            window.spawnVirusPopups();
+            window.initDraggable();
+            
+            try {
+                await window.loadFilesFromFirebase();
+            } catch(e) {
+                console.error("Firebase 로딩 실패: ", e);
+            }
+        };
 
-        function initChatLoop() {
+        window.initChatLoop = function() {
             const track = document.getElementById('chatTrack');
-            const repeatedChats = Array(15).fill(config.chats).flat();
+            const repeatedChats = Array(15).fill(window.config.chats).flat();
             repeatedChats.forEach(chat => {
                 if (chat.type === 'date') {
                     const dl = document.createElement('div');
@@ -319,24 +336,22 @@
                 } else {
                     const item = document.createElement('div');
                     item.className = `chat-item ${chat.side}`;
-                    const prof = `<div class="profile-box"><div class="profile-img"><img src="${chat.side === 'left' ? config.profiles.jikan : config.profiles.jiuin}"></div><span class="profile-name">${chat.sender}</span></div>`;
+                    const prof = `<div class="profile-box"><div class="profile-img"><img src="${chat.side === 'left' ? window.config.profiles.jikan : window.config.profiles.jiuin}"></div><span class="profile-name">${chat.sender}</span></div>`;
                     const bub = `<div class="bubble-container"><div class="kakao-bubble">${chat.text}</div></div>`;
                     item.innerHTML = chat.side === 'left' ? prof + bub : bub + prof;
                     track.appendChild(item);
                 }
             });
-        }
+        };
 
-        function spawnVirusPopups() {
+        window.spawnVirusPopups = function() {
             const layer = document.getElementById('virusPopups');
             const playerRect = document.getElementById('wmpPlayer').getBoundingClientRect();
-
             for(let i=0; i<2; i++) {
                 const popup = document.createElement('div');
                 popup.className = 'xp-window xp-popup draggable';
                 popup.style.left = (playerRect.left - 100 + (i * 60)) + 'px';
                 popup.style.top = (playerRect.top - 150 + (i * 40)) + 'px';
-
                 popup.innerHTML = `
                     <div class="xp-title-bar drag-handle">
                         <span>시스템 경고!</span>
@@ -344,10 +359,7 @@
                     </div>
                     <div class="xp-popup-body">
                         <img src="https://win98icons.alexmeub.com/icons/png/msg_warning-0.png" style="width:32px;">
-                        <div>
-                            <b>컴퓨터가 감염되었습니다!</b><br>
-                            가능한 위협을 지금 제거하십시오.
-                        </div>
+                        <div><b>컴퓨터가 감염되었습니다!</b><br>가능한 위협을 지금 제거하십시오.</div>
                     </div>
                     <div class="xp-popup-footer">
                         <button class="xp-btn" onclick="this.parentElement.parentElement.remove()">확인</button>
@@ -355,119 +367,16 @@
                 `;
                 layer.appendChild(popup);
             }
-        }
+        };
 
-        function openExplorer(folderId, title) {
-            document.getElementById('clickSound').play().catch(()=>{});
-            const win = document.getElementById('xpExplorer');
-            document.getElementById('explorerTitle').innerText = title;
-            currentActiveFolder = folderId;
-            renderFiles(folderId);
-            win.style.display = 'flex';
-        }
-
-        function closeExplorer() { document.getElementById('xpExplorer').style.display = 'none'; }
-
-        function renderFiles(folderId) {
-            const view = document.getElementById('explorerView');
-            const files = config.folders[folderId] || [];
-            view.innerHTML = '';
-
-            files.forEach((file) => {
-                const icon = document.createElement('div');
-                icon.className = 'file-icon';
-                
-                let img = "https://win98icons.alexmeub.com/icons/png/notepad-0.png";
-                if(file.type === 'folder' || folderId === 'folder-photos') img = "https://win98icons.alexmeub.com/icons/png/directory_closed-0.png";
-                if(file.type === 'rp') img = "https://win98icons.alexmeub.com/icons/png/write_wordpad-0.png";
-
-                icon.innerHTML = `<img src="${img}"><span class="file-name">${file.title}</span>`;
-                icon.onclick = () => file.type === 'folder' ? openExplorer(file.id, file.title) : viewDetail(file, folderId);
-                view.appendChild(icon);
-            });
-        }
-
-       function viewDetail(file, folderId) {
-    if(file.type === 'img') {
-        openModal(`<img src="${file.url}" style="max-width:100%">`);
-        return;
-    }
-            
-            if(file.type === 'txt') {
-                content = `<div class="notepad-text p-5 bg-white text-black h-full overflow-y-auto">${file.content}</div>`;
-            } else if(file.type === 'img') {
-                content = `<div class="image-display p-5 h-full overflow-y-auto"><img src="${file.url}"></div>`;
-            } else if(file.type === 'rp') {
-                currentRPData = file.content;
-                content = `
-                    <div class="archive-viewer">
-                        <div class="viewer-header">
-                            <input type="text" class="search-bar" placeholder="기록 검색..." onkeyup="filterRP(this.value)">
-                        </div>
-                        <div class="viewer-scroll" id="rpScroll">
-                            ${renderRPItems(file.content)}
-                        </div>
-                    </div>
-                `;
-            }
-
-            view.innerHTML = `
-                <div class="content-viewer">
-                    <div class="flex justify-between items-center px-4 py-2 border-b-2 border-blue-600 bg-gray-100">
-                        <div class="flex gap-4">
-                            <b class="text-black text-sm">${file.title}</b>
-                            <span class="text-xs text-blue-600 underline cursor-pointer" onclick="downloadFile('${file.title}', '${file.content}')">다운로드</span>
-                        </div>
-                        <span class="cursor-pointer font-bold text-blue-600 text-sm" onclick="renderFiles('${folderId}')">[닫기]</span>
-                    </div>
-                    ${content}
-                </div>`;
-        }
-
-function openModal(content) {
-    const modal = document.getElementById('fileModal');
-    document.getElementById('modalContent').innerHTML = content;
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-}
-
-function closeModal() {
-    const modal = document.getElementById('fileModal');
-    modal.classList.add('hidden');
-}
-
-        function renderRPItems(data) {
-            return data.map(m => `
-                <div class="msg-line ${m.side}">
-                    <div class="msg-name">${m.name}</div>
-                    <div class="msg-text">${m.msg}</div>
-                </div>
-            `).join('');
-        }
-
-        function filterRP(val) {
-            const scroll = document.getElementById('rpScroll');
-            const filtered = currentRPData.filter(m => m.msg.includes(val) || m.name.includes(val));
-            scroll.innerHTML = renderRPItems(filtered);
-        }
-
-        function downloadFile(name, content) {
-            const blob = new Blob([content], {type: 'text/plain'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = name; a.click();
-        }
-
-        // 드래그 로직 (모든 윈도우 대응)
-        function initDraggable() {
+        window.initDraggable = function() {
             let activeElement = null;
-            let currentX, currentY, initialX, initialY, xOffset = 0, yOffset = 0;
+            let currentX, currentY, initialX, initialY;
 
             document.addEventListener("mousedown", (e) => {
                 const handle = e.target.closest(".drag-handle");
                 if (handle) {
                     activeElement = handle.closest(".draggable");
-                    const rect = activeElement.getBoundingClientRect();
                     initialX = e.clientX - (activeElement.dataset.x || 0);
                     initialY = e.clientY - (activeElement.dataset.y || 0);
                     activeElement.style.zIndex = 1000;
@@ -491,82 +400,199 @@ function closeModal() {
                     activeElement = null;
                 }
             });
-        }
+        };
 
-        function toggleMusic() {
+        window.toggleMusic = function() {
             const frame = document.getElementById('musicFrame');
             const src = frame.src;
             frame.src = src.includes('autoplay=1') ? src.replace('autoplay=1', 'autoplay=0') : src.replace('autoplay=0', 'autoplay=1');
-        }
+        };
 
-        function addNewFolder() {
-            const name = prompt("새 폴더 이름:");
-            if(name) {
-                const id = 'folder-' + Date.now();
-                config.folders[id] = [];
-                config.folders[currentActiveFolder].push({ type: 'folder', title: name, id: id });
-                renderFiles(currentActiveFolder);
+        window.closeExplorer = function() { document.getElementById('xpExplorer').style.display = 'none'; };
+
+        window.openExplorer = function(folderId, title) {
+            document.getElementById('clickSound').play().catch(()=>{});
+            const win = document.getElementById('xpExplorer');
+            document.getElementById('explorerTitle').innerText = title;
+            
+            window.currentActiveFolder = folderId;
+            window.folderHistory = [folderId];
+            window.updateBackButton();
+            
+            window.renderFiles(folderId);
+            win.style.display = 'flex';
+        };
+
+        window.openSubFolder = function(folderId, title) {
+            document.getElementById('clickSound').play().catch(()=>{});
+            window.folderHistory.push(folderId);
+            window.currentActiveFolder = folderId;
+            document.getElementById('explorerTitle').innerText = title;
+            
+            window.updateBackButton();
+            window.renderFiles(folderId);
+        };
+
+        window.goBack = function() {
+            if (window.folderHistory.length > 1) {
+                window.folderHistory.pop();
+                window.currentActiveFolder = window.folderHistory[window.folderHistory.length - 1];
+                window.updateBackButton();
+                window.renderFiles(window.currentActiveFolder);
             }
-        }
-async function triggerAddFile() {
-    const t = prompt("파일명:");
-    const c = prompt(currentActiveFolder === 'folder-photos' ? "이미지 URL:" : "내용:");
+        };
 
-    if(t && c) {
-        const newData = currentActiveFolder === 'folder-photos'
-            ? {type:'img', title:t, url:c}
-            : {type:'txt', title:t+".txt", content:c};
+        window.updateBackButton = function() {
+            const btn = document.getElementById('backBtn');
+            if(btn) btn.style.display = window.folderHistory.length > 1 ? 'block' : 'none';
+        };
 
-        await addDoc(collection(window.db, "files"), {
-            folder: currentActiveFolder,
-            ...newData,
-            createdAt: Date.now()
-        });
+        window.renderFiles = function(folderId) {
+            const view = document.getElementById('explorerView');
+            const files = window.config.folders[folderId] || [];
+            view.innerHTML = '';
 
-        config.folders[currentActiveFolder].push(newData);
-        renderFiles(currentActiveFolder);
-    }
-} // 👈 여기서 끝내야 함
+            files.forEach((file) => {
+                const icon = document.createElement('div');
+                icon.className = 'file-icon';
+                
+                let img = "https://win98icons.alexmeub.com/icons/png/notepad-0.png";
+                if(file.type === 'folder' || folderId === 'folder-photos') img = "https://win98icons.alexmeub.com/icons/png/directory_closed-0.png";
+                if(file.type === 'rp') img = "https://win98icons.alexmeub.com/icons/png/write_wordpad-0.png";
+                if(file.type === 'img') img = "https://win98icons.alexmeub.com/icons/png/image_file-0.png";
 
-// ✅ 밖으로 빼야 함
-async function loadFilesFromFirebase() {
-    const querySnapshot = await getDocs(collection(window.db, "files"));
+                icon.innerHTML = `<img src="${img}"><span class="file-name">${file.title}</span>`;
+                icon.onclick = () => file.type === 'folder' ? window.openSubFolder(file.id, file.title) : window.viewDetail(file);
+                view.appendChild(icon);
+            });
+        };
 
-    querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        if(!config.folders[data.folder]) {
-            config.folders[data.folder] = [];
-        }
-        config.folders[data.folder].push(data);
-    });
-}
+        window.viewDetail = function(file) {
+            document.getElementById('clickSound').play().catch(()=>{});
 
+            let contentHTML = '';
+            let iconSrc = 'https://win98icons.alexmeub.com/icons/png/notepad-0.png';
 
+            if(file.type === 'txt') {
+                contentHTML = `<div style="padding: 15px; background: white; color: black; height: 100%; box-sizing: border-box; font-family: 'Gulim', sans-serif; font-size: 14px; white-space: pre-wrap; overflow-y: auto;">${file.content}</div>`;
+            } else if(file.type === 'img') {
+                contentHTML = `<div style="padding: 10px; background: #333; height: 100%; display: flex; justify-content: center; align-items: center; overflow: auto;"><img src="${file.url}" style="max-width: 100%; max-height: 100%; border: 2px inset #fff;"></div>`;
+                iconSrc = 'https://win98icons.alexmeub.com/icons/png/image_file-0.png';
+            } else if(file.type === 'rp') {
+                window.currentRPData = file.content;
+                contentHTML = `
+                    <div class="archive-viewer">
+                        <div class="viewer-header">
+                            <input type="text" class="search-bar" placeholder="기록 검색..." onkeyup="window.filterRP(this.value)">
+                        </div>
+                        <div class="viewer-scroll" id="rpScroll">
+                            ${window.renderRPItems(file.content)}
+                        </div>
+                    </div>`;
+            }
+
+            const popupId = 'window-' + Date.now();
+            const popup = document.createElement('div');
+            popup.className = 'xp-window draggable';
+            popup.id = popupId;
+            
+            const offset = Math.floor(Math.random() * 50) + 150;
+            popup.style.cssText = `top: ${offset}px; left: ${offset + 200}px; width: 450px; height: 400px; display: flex; flex-direction: column; z-index: 1000; position: absolute;`;
+
+            popup.innerHTML = `
+                <div class="xp-title-bar drag-handle">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <img src="${iconSrc}" style="width:16px;">
+                        <span>${file.title}</span>
+                    </div>
+                    <div class="xp-close-btn" onclick="document.getElementById('${popupId}').remove()">✕</div>
+                </div>
+                <div style="flex: 1; overflow-y: auto; background: #ece9d8; padding: 2px; border-bottom: 3px solid #0054e3; border-left: 3px solid #0054e3; border-right: 3px solid #0054e3;">
+                    ${contentHTML}
+                </div>
+            `;
+            document.body.appendChild(popup);
+        };
+
+        window.renderRPItems = function(data) {
+            return data.map(m => `
+                <div class="msg-line ${m.side}">
+                    <div class="msg-name">${m.name}</div>
+                    <div class="msg-text">${m.msg}</div>
+                </div>
+            `).join('');
+        };
+
+        window.filterRP = function(val) {
+            const scroll = document.getElementById('rpScroll');
+            const filtered = window.currentRPData.filter(m => m.msg.includes(val) || m.name.includes(val));
+            scroll.innerHTML = window.renderRPItems(filtered);
+        };
+
+        window.addNewFolder = async function() {
+            const name = prompt("새 폴더 이름:");
+            if(!name) return;
+
+            const id = 'folder-' + Date.now();
+            const newFolder = { type: 'folder', title: name, id: id, folder: window.currentActiveFolder };
+
+            try {
+                await window.addDoc(window.collection(window.db, "files"), { ...newFolder, createdAt: Date.now() });
+            } catch(e) {
+                console.error("폴더 저장 오류:", e);
+                alert("데이터베이스 저장에 실패했습니다. 임시로 생성됩니다.");
+            }
+
+            if(!window.config.folders[id]) window.config.folders[id] = [];
+            if(!window.config.folders[window.currentActiveFolder]) window.config.folders[window.currentActiveFolder] = [];
+            
+            window.config.folders[window.currentActiveFolder].push(newFolder);
+            window.renderFiles(window.currentActiveFolder);
+        };
+
+        window.triggerAddFile = async function() {
+            const t = prompt("파일명 (확장자 제외):");
+            if(!t) return;
+            
+            const isPhotoFolder = window.currentActiveFolder.includes('photos');
+            const c = prompt(isPhotoFolder ? "이미지 URL:" : "내용:");
+            if(!c) return;
+
+            const newData = isPhotoFolder
+                ? {type:'img', title: t + ".jpg", url:c}
+                : {type:'txt', title: t + ".txt", content:c};
+
+            try {
+                await window.addDoc(window.collection(window.db, "files"), {
+                    folder: window.currentActiveFolder,
+                    ...newData,
+                    createdAt: Date.now()
+                });
+            } catch(e) {
+                console.error("파일 저장 오류:", e);
+                alert("데이터베이스 저장에 실패했습니다. 임시로 생성됩니다.");
+            }
+
+            if(!window.config.folders[window.currentActiveFolder]) window.config.folders[window.currentActiveFolder] = [];
+            window.config.folders[window.currentActiveFolder].push(newData);
+            window.renderFiles(window.currentActiveFolder);
+        };
+
+        window.loadFilesFromFirebase = async function() {
+            const querySnapshot = await window.getDocs(window.collection(window.db, "files"));
+            
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                if(!window.config.folders[data.folder]) window.config.folders[data.folder] = [];
+                
+                const isExist = window.config.folders[data.folder].find(f => f.title === data.title);
+                if(!isExist) window.config.folders[data.folder].push(data);
+
+                if(data.type === 'folder' && !window.config.folders[data.id]) {
+                    window.config.folders[data.id] = [];
+                }
+            });
+        };
     </script>
-
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyAzy2_YfNKk2vPzU6l1AwjCC1_TepXYAsU",
-  authDomain: "inukan-19e53.firebaseapp.com",
-  projectId: "inukan-19e53",
-  storageBucket: "inukan-19e53.firebasestorage.app",
-  messagingSenderId: "1035051352954",
-  appId: "1:1035051352954:web:a06a37592846ac41710cc3",
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-// ⭐ 이거 추가
-window.db = db;
-window.addDoc = addDoc;
-window.getDocs = getDocs;
-window.collection = collection;
-
-</script>
-
 </body>
 </html>
