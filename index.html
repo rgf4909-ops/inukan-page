@@ -143,8 +143,11 @@
     </div>
 
     <div class="desktop-icons">
-        <div class="icon-item" onclick="window.openMessenger()">
-            <img src="https://win98icons.alexmeub.com/icons/png/chm-0.png" class="icon-img">
+        <div class="icon-item" onclick="window.openDailyMsg()">
+            <div style="position:relative;width:45px;height:45px;margin-bottom:5px;">
+                <img src="https://win98icons.alexmeub.com/icons/png/inetcfg_2-0.png" style="width:45px;height:45px;filter:drop-shadow(2px 2px 2px black);">
+                <div id="dailyBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:#ff3366;color:white;border-radius:50%;width:14px;height:14px;font-size:9px;font-family:Gulim;font-weight:bold;line-height:14px;text-align:center;">!</div>
+            </div>
             <span class="icon-label">메신저</span>
         </div>
         <div class="icon-item" onclick="window.openExplorer('folder-text', '로컬 디스크 (C:) \\ 기록 아카이브')">
@@ -159,12 +162,9 @@
             <img src="https://win98icons.alexmeub.com/icons/png/calendar-0.png" class="icon-img">
             <span class="icon-label">캘린더</span>
         </div>
-        <div class="icon-item" onclick="window.openDailyMsg()">
-            <div style="position:relative;width:45px;height:45px;margin-bottom:5px;">
-                <img src="https://win98icons.alexmeub.com/icons/png/mail_small-0.png" style="width:45px;height:45px;filter:drop-shadow(2px 2px 2px black);">
-                <div id="dailyBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:#ff3366;color:white;border-radius:50%;width:14px;height:14px;font-size:9px;font-family:Gulim;font-weight:bold;line-height:14px;text-align:center;">!</div>
-            </div>
-            <span class="icon-label">일일메시지</span>
+        <div class="icon-item" onclick="window.openBrowser()">
+            <img src="https://win98icons.alexmeub.com/icons/png/msie1-0.png" class="icon-img">
+            <span class="icon-label">인터넷</span>
         </div>
         <div class="icon-item" onclick="window.openExplorer('trash', '휴지통')">
             <img src="https://win98icons.alexmeub.com/icons/png/recycle_bin_empty-4.png" class="icon-img">
@@ -843,6 +843,11 @@
                 <div style="flex:1;background:#c0c0c0;border:2px inset #fff;display:flex;flex-direction:column;min-height:0;overflow:hidden;">${contentHTML}</div>`;
             document.body.appendChild(popup);
             window.makeResizable(popup);
+            if(file.type==='txt'){
+                window._bmDocMap[popupId]=file.docId;
+                // Firebase 로드 완료 후 충분한 시간 후에 복원
+                setTimeout(()=>window._bmLoad(popupId),400);
+            }
         };
 
         window.editRawLog = function(docId, popupId) {
@@ -915,10 +920,19 @@
         window.initDraggable = function() {
             let ae=null,ix,iy,cx,cy;
             document.addEventListener('mousedown',e=>{
+                // 어떤 draggable 창이든 클릭하면 맨 위로
+                const win=e.target.closest('.draggable');
+                if(win){
+                    const cur=parseInt(win.style.zIndex)||100;
+                    // 모든 창 중 최대 zIndex 찾기
+                    let maxZ=cur;
+                    document.querySelectorAll('.draggable').forEach(el=>{maxZ=Math.max(maxZ,parseInt(el.style.zIndex)||100);});
+                    if(cur<maxZ) win.style.zIndex=maxZ+1;
+                }
                 if(e.target.closest('.drag-handle')){
                     ae=e.target.closest('.draggable');
                     ix=e.clientX-(ae.dataset.x||0); iy=e.clientY-(ae.dataset.y||0);
-                    ae.style.zIndex=parseInt(ae.style.zIndex||100)+10;
+                    ae.style.zIndex=parseInt(ae.style.zIndex||100)+1;
                 }
             });
             document.addEventListener('mousemove',e=>{
@@ -995,6 +1009,45 @@
 
         // 🔖 북마크 - 텍스트 선택하면 팝오버 버튼 표시
         window._bm={};
+        // pid → docId 매핑 (viewDetail 호출 시 등록)
+        window._bmDocMap={};
+
+        window._bmSave=async function(pid){
+            const docId=window._bmDocMap[pid]; if(!docId||docId.startsWith('doc-'))return;
+            const bms=window._bm[pid]||[];
+            try{ await window.updateDoc(window.doc(window.db,'files',docId),{bookmarks:JSON.stringify(bms)}); }catch(e){}
+        };
+        window._bmLoad=function(pid){
+            const docId=window._bmDocMap[pid]; if(!docId)return;
+            const f=window.findFileByDocId(docId); if(!f||!f.bookmarks)return;
+            try{
+                const bms=JSON.parse(f.bookmarks);
+                window._bm[pid]=bms;
+                const scroll=document.getElementById(`logScroll-${pid}`);
+                if(scroll){
+                    bms.forEach(b=>{
+                        const walker=document.createTreeWalker(scroll,NodeFilter.SHOW_TEXT);
+                        const target=b.text.replace(/…$/,'');
+                        let nd;
+                        while((nd=walker.nextNode())){
+                            const idx=nd.textContent.indexOf(target);
+                            if(idx>=0){
+                                try{
+                                    const r=document.createRange();
+                                    r.setStart(nd,idx); r.setEnd(nd,idx+target.length);
+                                    const mk=document.createElement('mark');mk.className='bm-mark';mk.dataset.bmid=b.id;
+                                    mk.style.cssText='background:rgba(100,180,255,0.3);border-bottom:2px solid #4488ff;cursor:pointer;';
+                                    r.surroundContents(mk);
+                                }catch(e){}
+                                break;
+                            }
+                        }
+                    });
+                }
+                window.renderBmList(pid);
+            }catch(e){}
+        };
+
         window.onLogSelect=function(pid){
             document.getElementById('bmFloatBtn')?.remove();
             const sel=window.getSelection();
@@ -1024,6 +1077,7 @@
             window._bm[pid].push({id,text:text.substring(0,55)+(text.length>55?'…':'')});
             window.getSelection()?.removeAllRanges();
             window.renderBmList(pid);
+            window._bmSave(pid);
         };
         window.renderBmList=function(pid){
             const panel=document.getElementById(`bm-panel-${pid}`);if(!panel)return;
@@ -1047,6 +1101,7 @@
             if(el)el.replaceWith(document.createTextNode(el.textContent));
             if(window._bm[pid])window._bm[pid]=window._bm[pid].filter(b=>b.id!==bmid);
             window.renderBmList(pid);
+            window._bmSave(pid);
         };
 
         // 📁 파일 업로드 (base64)
@@ -1094,107 +1149,270 @@
         });
 
         // 💌 데일리 메시지 (Gemini 1.5 Flash - 무료 티어 지원)
+        // =========================================
+        // 💌 메신저 (매일 편지, 누적 저장)
+        // =========================================
+        window._getLetters  = ()=>JSON.parse(localStorage.getItem('allLetters')||'[]');
+        window._saveLetters = (a)=>localStorage.setItem('allLetters',JSON.stringify(a));
+        window._getSaved    = ()=>JSON.parse(localStorage.getItem('savedLetters')||'[]');
+        window._saveSaved   = (a)=>localStorage.setItem('savedLetters',JSON.stringify(a));
+
         window.openDailyMsg=function(){
-            if(document.getElementById('dailyMsgWin')){document.getElementById('dailyMsgWin').style.display='flex';return;}
+            if(document.getElementById('dailyMsgWin')){
+                document.getElementById('dailyMsgWin').style.display='flex';
+                window._drawLetterList('inbox');
+                return;
+            }
             const p=document.createElement('div');p.className='xp-window draggable';p.id='dailyMsgWin';
-            p.style.cssText='top:80px;right:360px;left:auto;width:340px;height:460px;position:fixed;z-index:2000;display:flex;flex-direction:column;overflow:visible;';
+            p.style.cssText='top:60px;right:40px;left:auto;width:460px;height:540px;position:fixed;z-index:2000;display:flex;flex-direction:column;overflow:visible;';
             p.innerHTML=`
-                <div class="xp-title-bar drag-handle" style="background:linear-gradient(to right,#2b2b2b,#444);">
-                    <div style="font-size:13px;">&#128140; Daily Message</div>
-                    <div class="xp-close-btn" style="background:transparent;border:none;box-shadow:none;color:white;font-size:13px;" onclick="document.getElementById('dailyMsgWin').style.display='none'">&#10005;</div>
+                <div class="xp-title-bar drag-handle">
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <img src="https://win98icons.alexmeub.com/icons/png/inetcfg_2-0.png" style="width:14px;">
+                        <span>메신저 - 받은 편지함</span>
+                    </div>
+                    <div class="xp-close-btn" onclick="document.getElementById('dailyMsgWin').style.display='none'">✕</div>
                 </div>
-                <div style="background:#c0c0c0;padding:2px 6px;font-size:11px;color:black;border-bottom:1px solid #808080;font-family:Gulim;">파일(F) 보기(V) 도움말(H)</div>
-                <div id="dailyMsgBody" style="flex:1;overflow-y:auto;background:#1a1a2e;padding:15px;display:flex;flex-direction:column;gap:12px;">
-                    <div style="color:#aaa;font-size:11px;font-family:Gulim;text-align:center;">불러오는 중...</div>
+                <div style="background:#c0c0c0;padding:2px 8px;font-size:11px;color:black;border-bottom:1px solid #808080;font-family:Gulim;display:flex;gap:10px;align-items:center;">
+                    <span id="tab-inbox" style="cursor:pointer;font-weight:bold;border-bottom:2px solid #000080;" onclick="window._drawLetterList('inbox')">📨 받은편지함</span>
+                    <span id="tab-saved" style="cursor:pointer;" onclick="window._drawLetterList('saved')">★ 보관함</span>
+                    <span style="margin-left:auto;cursor:pointer;color:#555;" onclick="window.fetchDailyMsg('refresh')">새로고침</span>
+                    <span style="cursor:pointer;color:#0000cc;border:1px solid #aaa;padding:1px 6px;background:#fffde0;" onclick="window.fetchDailyMsg('test')">테스트</span>
                 </div>
-                <div style="background:#c0c0c0;padding:5px 6px;border-top:1px solid #808080;display:flex;align-items:center;gap:4px;">
-                    <span style="font-size:10px;font-family:Gulim;color:#555;white-space:nowrap;">API키:</span>
-                    <input id="gemApiInput" type="password" style="flex:1;border:1px inset #808080;font-family:Gulim;font-size:10px;padding:1px 3px;min-width:0;" placeholder="AIza..." value="${localStorage.getItem('gemApiKey')||''}" onchange="localStorage.setItem('gemApiKey',this.value)">
-                    <button class="xp-btn" style="white-space:nowrap;" onclick="window.fetchDailyMsg(true)">새로고침</button>
-                </div>`;
+                <div id="dailyMsgBody" style="flex:1;overflow-y:auto;background:#fff;display:flex;flex-direction:column;min-height:0;"></div>`;
             document.body.appendChild(p);
             window.makeResizable(p);
             const badge=document.getElementById('dailyBadge');if(badge)badge.style.display='none';
-            window.fetchDailyMsg(false);
+            window._drawLetterList('inbox');
         };
 
-        window.fetchDailyMsg=async function(force){
-            const body=document.getElementById('dailyMsgBody');if(!body)return;
-            const today=new Date().toDateString();
-            const cached=!force&&localStorage.getItem('dailyMsg_'+today);
-            if(cached){window._renderDaily(JSON.parse(cached));return;}
-            body.innerHTML='<div style="color:#aaa;font-size:11px;font-family:Gulim;text-align:center;padding-top:30px;">생성 중...</div>';
-            const apiKey=localStorage.getItem('gemApiKey')||'';
-            if(!apiKey){body.innerHTML='<div style="color:#f88;font-size:11px;font-family:Gulim;text-align:center;padding:20px;">하단 API키 입력창에<br>Gemini API키를 입력하세요.<br><br>aistudio.google.com에서<br>무료로 발급받을 수 있어요.</div>';return;}
-
-            const prompt=`두 캐릭터가 오늘(${new Date().toLocaleDateString('ko-KR')}) 짧게 한마디씩.
-지칸: 냉소적, 말 짧고 툭툭 내뱉음, 속마음 따뜻하지만 절대 티 안 냄.
-지우인: 능글맞고 여유로움, 장난기 있음, 다정함이 묻어남.
-JSON 배열만 반환(다른 텍스트 없이):
-[{"name":"지칸","msg":"..."},{"name":"지우인","msg":"..."}]`;
-
-            // v1beta + v1 둘 다, 여러 모델 순서대로 시도
-            const endpoints=[
-                `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-                `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent?key=${apiKey}`,
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`,
-            ];
-
-            let lastErr='';
-            for(const url of endpoints){
-                try{
-                    const res=await fetch(url,{
-                        method:'POST',headers:{'Content-Type':'application/json'},
-                        body:JSON.stringify({
-                            contents:[{parts:[{text:prompt}]}],
-                            generationConfig:{temperature:0.95,maxOutputTokens:200}
-                        })
-                    });
-                    const data=await res.json();
-                    if(data.error){lastErr=`[${url.match(/models\/(.+?):/)&&url.match(/models\/(.+?):/)[1]}] ${data.error.message}`;continue;}
-                    const raw=data.candidates[0].content.parts[0].text.replace(/```json|```/g,'').trim();
-                    const msgs=JSON.parse(raw);
-                    localStorage.setItem('dailyMsg_'+today,JSON.stringify(msgs));
-                    window._renderDaily(msgs);
-                    return;
-                }catch(e){lastErr=e.message;}
-            }
-            body.innerHTML=`<div style="color:#f88;font-size:11px;font-family:Gulim;text-align:center;padding:20px;">오류: ${lastErr}<br><br>API 키를 확인해주세요.<br>aistudio.google.com에서<br>새 키를 발급받아 입력하세요.</div>`;
-        };
-
-        window._renderDaily=function(msgs){
+        window._drawLetterList=function(tab){
+            // 탭 스타일
+            const ti=document.getElementById('tab-inbox'),ts=document.getElementById('tab-saved');
+            if(ti&&ts){ti.style.fontWeight=tab==='inbox'?'bold':'normal';ti.style.borderBottom=tab==='inbox'?'2px solid #000080':'none';ts.style.fontWeight=tab==='saved'?'bold':'normal';ts.style.borderBottom=tab==='saved'?'2px solid #000080':'none';}
             const body=document.getElementById('dailyMsgBody');if(!body)return;
             body.innerHTML='';
-            const d=document.createElement('div');d.style.cssText='text-align:center;color:#555;font-size:10px;font-family:Gulim;margin-bottom:4px;';
-            d.textContent=new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'});body.appendChild(d);
-            msgs.forEach(m=>{
-                const isJ=m.name==='지우인';
-                const img=isJ?window.config.profiles.jiuin:window.config.profiles.jikan;
-                const div=document.createElement('div');div.style.cssText=`display:flex;align-items:flex-start;gap:8px;flex-direction:${isJ?'row-reverse':'row'};`;
-                div.innerHTML=`
-                    <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">
-                        <img src="${img}" style="width:38px;height:38px;border-radius:12px;border:1px solid #444;object-fit:cover;">
-                        <span style="font-size:9px;color:#888;margin-top:2px;font-family:Gulim;">${m.name}</span>
-                    </div>
-                    <div style="max-width:72%;">
-                        <div style="background:${isJ?'#fae100':'#2d2d2d'};color:${isJ?'#111':'#eee'};padding:9px 12px;border-radius:${isJ?'12px 2px 12px 12px':'2px 12px 12px 12px'};font-size:13px;font-family:'Batang',serif;line-height:1.6;box-shadow:0 2px 6px rgba(0,0,0,0.3);">${m.msg}</div>
+
+            const letters=tab==='saved'?[...window._getSaved()].reverse():[...window._getLetters()].reverse();
+            if(!letters.length){
+                body.innerHTML=`<div style="padding:20px;color:#aaa;font-family:Gulim;font-size:11px;text-align:center;">${tab==='saved'?'보관한 편지가 없어요.':'편지가 없어요.<br>테스트 버튼을 눌러보세요.'}</div>`;
+                return;
+            }
+            // 헤더
+            const hdr=document.createElement('div');
+            hdr.style.cssText='background:#000080;color:white;padding:5px 10px;font-size:11px;font-family:Gulim;display:grid;grid-template-columns:24px 52px 52px 1fr 52px;gap:4px;flex-shrink:0;';
+            hdr.innerHTML='<span></span><span>보낸이</span><span>받는이</span><span>제목</span><span>날짜</span>';
+            body.appendChild(hdr);
+
+            letters.forEach((m,i)=>{
+                const fromImg=m.from==='지칸'?window.config.profiles.jikan:window.config.profiles.jiuin;
+                const readKey='lr_'+tab+'_'+m.from+'_'+(m.dateKey||m.date||i);
+                const isRead=!!localStorage.getItem(readKey);
+                const isSaved=window._getSaved().some(s=>s.from===m.from&&s.dateKey===m.dateKey&&s.letter===m.letter);
+
+                const row=document.createElement('div');
+                row.style.cssText=`display:grid;grid-template-columns:24px 52px 52px 1fr 52px;gap:4px;align-items:center;padding:5px 10px;border-bottom:1px solid #e8e8e8;cursor:pointer;background:${isRead?'white':'#fffbe6'};font-family:Gulim;font-size:11px;color:black;`;
+                row.innerHTML=`
+                    <img src="${fromImg}" style="width:20px;height:20px;border-radius:4px;object-fit:cover;">
+                    <span style="${isRead?'':'font-weight:bold;'}overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.from}</span>
+                    <span style="color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.to}</span>
+                    <span style="${isRead?'':'font-weight:bold;'}overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.subject||'...'}</span>
+                    <span style="color:#888;font-size:10px;white-space:nowrap;">${m.date||''}</span>`;
+
+                const lDiv=document.createElement('div');
+                lDiv.setAttribute('data-ltr','1');
+                lDiv.style.cssText='display:none;background:#fffef5;border:1px inset #c0c0c0;margin:0 8px 6px;padding:14px 16px;';
+                lDiv.innerHTML=`
+                    <div style="white-space:pre-line;font-family:Batang,BatangChe,serif;font-size:13px;color:#222;line-height:1.9;">${m.letter}</div>
+                    <div style="margin-top:10px;display:flex;gap:6px;justify-content:flex-end;">
+                        <button class="xp-btn" style="font-size:10px;padding:2px 10px;" data-bm="${i}"
+                            onclick="event.stopPropagation();window._toggleSave(this,'${tab}')">${isSaved?'★ 보관됨':'☆ 보관하기'}</button>
+                        ${tab==='saved'?`<button class="xp-btn" style="font-size:10px;padding:2px 10px;" onclick="event.stopPropagation();window._deleteSaved(${i})">삭제</button>`:''}
                     </div>`;
-                body.appendChild(div);
+                // 편지 객체를 버튼 data에 저장
+                lDiv.querySelector('[data-bm]')._letter=m;
+
+                row.onclick=()=>{
+                    const open=lDiv.style.display==='block';
+                    body.querySelectorAll('[data-ltr]').forEach(el=>el.style.display='none');
+                    lDiv.style.display=open?'none':'block';
+                    if(!open){row.style.background='white';row.querySelectorAll('span').forEach(s=>s.style.fontWeight='normal');localStorage.setItem(readKey,'1');}
+                };
+                body.appendChild(row);
+                body.appendChild(lDiv);
             });
+        };
+
+        window._toggleSave=function(btn,tab){
+            const m=btn._letter;if(!m)return;
+            const saved=window._getSaved();
+            const idx=saved.findIndex(s=>s.from===m.from&&s.dateKey===m.dateKey&&s.letter===m.letter);
+            if(idx>=0){saved.splice(idx,1);btn.textContent='☆ 보관하기';}
+            else{saved.push(m);btn.textContent='★ 보관됨';}
+            window._saveSaved(saved);
+        };
+        window._deleteSaved=function(idx){
+            const saved=window._getSaved();
+            // reversed index → 원본 index
+            const orig=saved.length-1-idx;
+            saved.splice(orig,1);
+            window._saveSaved(saved);
+            window._drawLetterList('saved');
+        };
+
+        window.fetchDailyMsg=async function(mode){
+            const body=document.getElementById('dailyMsgBody');if(!body)return;
+            const today=new Date().toDateString();
+            // 캐시 사용 (refresh/test 아닐 때)
+            if(mode!=='refresh'&&mode!=='test'){
+                const cached=localStorage.getItem('dailyMsg_'+today);
+                if(cached){window._drawLetterList('inbox');return;}
+            }
+            body.innerHTML='<div style="color:#aaa;font-size:11px;font-family:Gulim;text-align:center;padding:30px;">편지 불러오는 중...</div>';
+            const GROQ_KEY='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';
+            const dateStr=new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'});
+            try{
+                const res=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+                    method:'POST',
+                    headers:{'Content-Type':'application/json','Authorization':`Bearer ${GROQ_KEY}`},
+                    body:JSON.stringify({
+                        model:'llama-3.3-70b-versatile',
+                        messages:[
+                        {role:'system',content:`너는 두 캐릭터를 완벽히 연기하는 롤플레이어야. AI처럼 말하지 마.
+
+【지칸】 23세 남성. NSI BLACK 협상부. 말보다 주먹, 입 걸고 화 많음. 지우인한테 소유욕 있지만 절대 티 안 냄. 말투: 짧고 거칠게, 욕 자연스럽게, 반말.
+예시: "실실 웃는 게 니가 더 잡상인 같아." / "웬 모르는 척이야."
+
+【지우인】 29세 남성. NSI BLACK 보안부. 쾌락주의, 감정 둔함, 놀리고 비꼬기 즐김. 말투: 나긋하지만 악의적, 반말, 존댓말 절대 없음.
+예시: "호 해줄래? 아님 빨아주나?" / "오래 붙어있으면 나 인기 떨어지는데."
+
+오늘 있었던 일을 상대방에게 3~4문장. 본문만(인사말·서명 없이). subject는 말걸기 느낌 5~10자.
+JSON만 반환: [{"from":"지칸","to":"지우인","subject":"...","letter":"..."},{"from":"지우인","to":"지칸","subject":"...","letter":"..."}]`},
+                        {role:'user',content:`오늘(${dateStr}) 편지 써줘`}],
+                        temperature:1.1,max_tokens:500
+                    })
+                });
+                const data=await res.json();
+                if(data.error)throw new Error(data.error.message);
+                const raw=data.choices[0].message.content.replace(/```json|```/g,'').trim();
+                const msgs=JSON.parse(raw);
+                const dateShort=new Date().toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'});
+                msgs.forEach(m=>{m.date=dateShort;m.dateKey=today+(mode==='test'?'_t'+Date.now():'');});
+
+                if(mode!=='test'){
+                    // 오늘 캐시
+                    localStorage.setItem('dailyMsg_'+today,JSON.stringify(msgs));
+                    // 누적 (같은 dateKey 덮어쓰기)
+                    const all=window._getLetters().filter(l=>l.dateKey!==today);
+                    window._saveLetters([...all,...msgs]);
+                }
+                window._drawLetterList('inbox');
+            }catch(err){
+                body.innerHTML=`<div style="color:#c00;font-size:11px;font-family:Gulim;text-align:center;padding:20px;">오류: ${err.message}</div>`;
+            }
         };
 
         window.initDailyMsg=function(){
             const today=new Date().toDateString();
             if(!localStorage.getItem('dailyMsg_'+today)){
                 const badge=document.getElementById('dailyBadge');if(badge)badge.style.display='block';
-                window.pushNotif('&#128140; 일일메시지 도착','지칸과 지우인의 오늘 메시지가 도착했어요!',()=>window.openDailyMsg());
+                window.pushNotif('💌 메신저','지칸님이 편지를 보냈어요.',()=>window.openDailyMsg());
+                setTimeout(()=>window.pushNotif('💌 메신저','지우인님이 편지를 보냈어요.',()=>window.openDailyMsg()),800);
             }
             const now=new Date(),midnight=new Date(now);midnight.setHours(24,0,0,0);
             setTimeout(()=>{
-                localStorage.removeItem('dailyMsg_'+today);window.initDailyMsg();
+                localStorage.removeItem('dailyMsg_'+today);
+                window.initDailyMsg();
                 setInterval(()=>{localStorage.removeItem('dailyMsg_'+new Date().toDateString());window.initDailyMsg();},86400000);
             },midnight-now);
+        };
+
+        // 🌐 인터넷 익스플로러
+        window.openBrowser=function(){
+            if(document.getElementById('browserWin')){document.getElementById('browserWin').style.display='flex';return;}
+            const p=document.createElement('div');p.className='xp-window draggable';p.id='browserWin';
+            p.style.cssText='top:50px;left:12%;width:680px;height:520px;position:absolute;z-index:1500;display:flex;flex-direction:column;overflow:visible;';
+            p.innerHTML=`
+                <div class="xp-title-bar drag-handle">
+                    <div style="display:flex;align-items:center;gap:6px;"><img src="https://win98icons.alexmeub.com/icons/png/msie1-0.png" style="width:14px;"><span id="ieTitle">새 페이지 - Microsoft Internet Explorer</span></div>
+                    <div class="xp-close-btn" onclick="document.getElementById('browserWin').remove()">✕</div>
+                </div>
+                <div class="xp-menubar"><span>파일(F)</span><span>편집(E)</span><span>보기(V)</span><span>즐겨찾기(A)</span><span>도구(T)</span><span>도움말(H)</span></div>
+                <div style="background:#c0c0c0;padding:3px 6px;display:flex;gap:4px;align-items:center;border-bottom:1px solid #808080;">
+                    <button class="xp-btn" style="padding:2px 8px;font-size:11px;" id="ieBack" onclick="window.ieBrowse('home')">◀</button>
+                    <button class="xp-btn" style="padding:2px 8px;font-size:11px;" onclick="window.ieBrowse('home')">홈</button>
+                    <button class="xp-btn" style="padding:2px 8px;font-size:11px;" onclick="window.ieBrowse('refresh')">새로고침</button>
+                </div>
+                <div style="background:#c0c0c0;padding:3px 6px;display:flex;gap:4px;align-items:center;border-bottom:2px solid #808080;">
+                    <span style="font-size:11px;font-family:Gulim;white-space:nowrap;">주소(D)</span>
+                    <div style="flex:1;background:white;border:2px inset #fff;display:flex;align-items:center;padding:1px 4px;gap:4px;">
+                        <img src="https://win98icons.alexmeub.com/icons/png/msie1-0.png" style="width:14px;flex-shrink:0;">
+                        <input id="ieUrl" type="text" placeholder="검색어나 주소를 입력하세요..." style="flex:1;border:none;outline:none;font-family:Gulim;font-size:11px;color:black;" onkeydown="if(event.key==='Enter')window.ieBrowse('go')">
+                    </div>
+                    <button class="xp-btn" style="padding:2px 10px;font-size:11px;" onclick="window.ieBrowse('go')">이동</button>
+                </div>
+                <div id="ieBody" style="flex:1;overflow-y:auto;background:white;padding:16px;font-family:Gulim;font-size:12px;color:black;line-height:1.7;">
+                    <div style="text-align:center;padding-top:60px;">
+                        <img src="https://win98icons.alexmeub.com/icons/png/msie1-0.png" style="width:48px;opacity:0.3;"><br>
+                        <div style="color:#888;margin-top:12px;font-size:13px;">검색어를 입력하세요.</div>
+                    </div>
+                </div>
+                <div id="ieStatus" style="background:#c0c0c0;padding:2px 8px;border-top:1px solid #808080;font-size:10px;font-family:Gulim;color:#555;">준비</div>`;
+            document.body.appendChild(p);
+            window.makeResizable(p);
+        };
+
+        window._ieHistory=[];
+        window.ieBrowse=async function(action){
+            const urlInput=document.getElementById('ieUrl');
+            const body=document.getElementById('ieBody');
+            const status=document.getElementById('ieStatus');
+            const title=document.getElementById('ieTitle');
+            if(!body)return;
+
+            if(action==='home'){
+                urlInput.value='';
+                body.innerHTML=`<div style="text-align:center;padding-top:60px;"><img src="https://win98icons.alexmeub.com/icons/png/msie1-0.png" style="width:48px;opacity:0.3;"><br><div style="color:#888;margin-top:12px;font-size:13px;">검색어를 입력하세요.</div></div>`;
+                title.textContent='새 페이지 - Microsoft Internet Explorer';
+                return;
+            }
+
+            const query=urlInput.value.trim(); if(!query)return;
+            if(status)status.textContent='연결 중...';
+            body.innerHTML=`<div style="color:#555;font-size:11px;padding:20px;"><img src="https://win98icons.alexmeub.com/icons/png/msie1-0.png" style="width:16px;vertical-align:middle;"> 페이지 로드 중: ${query}</div>`;
+            title.textContent=`${query} - Microsoft Internet Explorer`;
+
+            const GROQ_KEY='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';
+            try{
+                const res=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+                    method:'POST',
+                    headers:{'Content-Type':'application/json','Authorization':`Bearer ${GROQ_KEY}`},
+                    body:JSON.stringify({
+                        model:'llama-3.3-70b-versatile',
+                        messages:[{role:'system',content:`너는 오래되고 기묘한 웹 아카이브다. 사용자가 무엇을 검색하든 건조하고 음산하고 불안한 어조로만 답한다.
+규칙:
+- 사실처럼 쓰되 뭔가 이상하고 으스스한 뉘앙스
+- 감정 없는 건조한 문체. 오래된 기록물처럼
+- 정보는 맞을 수도 있고 틀릴 수도 있다. "확인된 바 없다"는 뉘앙스
+- 어떤 검색이든 같은 음산한 톤 유지
+- 마지막엔 짧고 불안한 주석이나 경고 한 줄 반드시 추가
+- HTML body 내용만. font-family:Gulim. background:white. 한국어.
+예시: "이 지역의 기온은 오늘도 변함없이 낮았다. 그것이 이상한 일인지는 알 수 없다."
+"검색 결과 3건이 발견되었다. 나머지는 삭제되었거나 처음부터 없었다."
+"해당 인물은 2003년 이후 기록이 존재하지 않는다."`},
+                        {role:'user',content:query}],
+                        temperature:0.9,max_tokens:800
+                    })
+                });
+                const data=await res.json();
+                if(data.error)throw new Error(data.error.message);
+                const html=data.choices[0].message.content.replace(/```html|```/g,'').trim();
+                body.innerHTML=`<div style="min-height:100%;">${html}</div>`;
+                if(status)status.textContent='완료';
+            }catch(err){
+                body.innerHTML=`<div style="padding:20px;color:#c00;font-family:Gulim;font-size:11px;">페이지를 표시할 수 없습니다.<br><br>오류: ${err.message}</div>`;
+                if(status)status.textContent='오류';
+            }
         };
     </script>
 </body>
