@@ -156,9 +156,9 @@
             </div>
             <span class="icon-label">메신저</span>
         </div>
-        <div class="icon-item" onclick="window.openExplorer('folder-text', '로컬 디스크 (C:) \\ 기록 아카이브')">
+        <div class="icon-item" onclick="window.openExplorer('folder-text', '로컬 디스크 (C:) \\ 내 문서')">
             <img src="https://win98icons.alexmeub.com/icons/png/directory_open_file_mydocs-4.png" class="icon-img">
-            <span class="icon-label">기록 폴더</span>
+            <span class="icon-label">내 문서</span>
         </div>
         <div class="icon-item" onclick="window.openExplorer('folder-photos', '로컬 디스크 (C:) \\ 사진첩')">
             <img src="https://win98icons.alexmeub.com/icons/png/directory_closed-4.png" class="icon-img">
@@ -294,7 +294,7 @@
             window.updateClock(); setInterval(window.updateClock, 1000); 
             window.initGlobalClickSound(); 
             window.initGlitchEffect();
-            window.restoreBg();
+            await window.restoreBg();
 
             try { 
                 await window.loadFilesFromFirebase(); 
@@ -1605,12 +1605,25 @@ JSON만 반환: [{"from":"지칸","to":"지우인","subject":"...","letter":"...
         };
 
         // 🖼️ 스티커 시스템 (프레임/효과 선택 포함)
-        window._stickers=JSON.parse(localStorage.getItem('bgStickers')||'[]');
-        window.saveStickers=function(){localStorage.setItem('bgStickers',JSON.stringify(window._stickers.map(s=>({src:s.src,title:s.title||'사진',x:s.x,y:s.y,rot:s.rot,scale:s.scale,frame:s.frame,effect:s.effect})))); };
+        window._stickers=[];
+        window.saveStickers=async function(){
+            const data=window._stickers.map(s=>({src:s.src,title:s.title||'사진',x:s.x,y:s.y,rot:s.rot,scale:s.scale,frame:s.frame,effect:s.effect}));
+            try{ await window.setDoc(window.doc(window.db,'settings','stickers'),{list:JSON.stringify(data)}); }catch(e){}
+        };
         window.loadStickers=function(){window._stickers.forEach(s=>window._renderSticker(s));};
-        window.restoreBg=function(){
-            const bg=localStorage.getItem('bgImage');
-            if(bg){ const bgImg=document.querySelector('.bg-image'); if(bgImg) bgImg.src=bg; }
+        window.restoreBg=async function(){
+            try{
+                const snap=await window.getDocs(window.collection(window.db,'settings'));
+                snap.forEach(d=>{
+                    if(d.id==='stickers'){
+                        try{ window._stickers=JSON.parse(d.data().list||'[]'); }catch(e){}
+                    }
+                    if(d.id==='bgImage'){
+                        const bg=d.data().url;
+                        if(bg){const bgImg=document.querySelector('.bg-image');if(bgImg)bgImg.src=bg;}
+                    }
+                });
+            }catch(e){}
             window.loadStickers();
         };
 
@@ -1841,18 +1854,17 @@ JSON만 반환: [{"from":"지칸","to":"지우인","subject":"...","letter":"...
         window._stickerRotate=function(el,deg){const s=window._stickers.find(s=>s.el===el);if(!s)return;s.rot=(s.rot+deg)%360;el.style.transform=`rotate(${s.rot}deg)`;window.saveStickers();};
         window._stickerScale=function(el,f){const s=window._stickers.find(s=>s.el===el);if(!s)return;s.scale=Math.min(4,Math.max(0.2,s.scale*f));const img=el.querySelector('.sticker-img');if(img){img.style.maxWidth=110*s.scale+'px';img.style.maxHeight=110*s.scale*1.5+'px';img.style.width='auto';img.style.height='auto';}window.saveStickers();};
         window._deleteSticker=function(el){const i=window._stickers.findIndex(s=>s.el===el);if(i<0)return;window._stickers[i].el.remove();window._stickers.splice(i,1);window.saveStickers();};
-        window.setAsBg=function(file){
+        window.setAsBg=async function(file){
             if(!file.url)return alert('URL이 없어요.');
-            // bg-container의 img 태그에 적용 (오른쪽 배경 영역)
             const bgImg = document.querySelector('.bg-image');
             if(bgImg) bgImg.src = file.url;
-            localStorage.setItem('bgImage', file.url);
+            try{ await window.setDoc(window.doc(window.db,'settings','bgImage'),{url:file.url}); }catch(e){}
         };
-        window.resetBg=function(){
+        window.resetBg=async function(){
             const bgImg = document.querySelector('.bg-image');
             const defaultBg = "https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdna%2Fbo0278%2FdJMcafL32e7%2FAAAAAAAAAAAAAAAAAAAAABlHjiaQc4NH3u1mNQVjRHfd-DvmuBcNJd2YohedpmLn%2Fimg.png%3Fcredential%3DyqXZFxpELC7KVnFOS48ylbz2pIh7yKj8%26expires%3D1774969199%26allow_ip%3D%26allow_referer%3D%26signature%3DmsuoDZ%252FDOFMkyKffXpYXOGq0wjg%253D";
             if(bgImg) bgImg.src = defaultBg;
-            localStorage.removeItem('bgImage');
+            try{ await window.setDoc(window.doc(window.db,'settings','bgImage'),{url:''}); }catch(e){}
         };
 
         // 🌐 인터넷 익스플로러 (클래식 IE UI + 캐릭터 검색)
