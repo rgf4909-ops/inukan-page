@@ -262,6 +262,9 @@
     <!-- ✅ Gemini API 프록시 URL — Worker 배포 후 여기만 수정하세요 -->
     <script>
         window.GEMINI_PROXY = 'https://young-shadow-bf18geminiapi.rgf4909.workers.dev';
+        // 날씨 반영 원하면 OpenWeatherMap 무료 키 입력 (https://openweathermap.org/api)
+        // 없어도 동작은 함 (날씨 정보 없이 시간대만 반영)
+        window.OWM_API_KEY = '2db853d85f18a125dffdf3eae85a8fcc';
     </script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -303,6 +306,7 @@
             try { 
                 await window.loadFilesFromFirebase(); 
                 await window.loadCalendar();
+                await window._loadLettersFromFirebase();
                 // notifSound가 완전히 로드된 뒤 알림 실행
                 setTimeout(()=>window.checkTodayMemo(), 800);
             } catch(e) {}
@@ -1391,12 +1395,72 @@
         });
 
         // =========================================
-        // 💬 버디버디 (쪽지 시스템)
+        // 💬 버디버디 (쪽지 시스템) - Firebase 연동
         // =========================================
-        window._getLetters  = ()=>JSON.parse(localStorage.getItem('allLetters')||'[]');
-        window._saveLetters = (a)=>localStorage.setItem('allLetters',JSON.stringify(a));
-        window._getSaved    = ()=>JSON.parse(localStorage.getItem('savedLetters')||'[]');
-        window._saveSaved   = (a)=>localStorage.setItem('savedLetters',JSON.stringify(a));
+
+        // ── Firebase 쪽지 저장/로드 ──
+        window._lettersCache = null;
+        window._savedCache = null;
+
+        window._getLetters = function() {
+            return window._lettersCache || JSON.parse(localStorage.getItem('allLetters')||'[]');
+        };
+        window._saveLetters = async function(arr) {
+            window._lettersCache = arr;
+            localStorage.setItem('allLetters', JSON.stringify(arr));
+            try {
+                await window.setDoc(window.doc(window.db, 'settings', 'bbLetters'), { letters: arr });
+            } catch(e) {}
+        };
+        window._getSaved = function() {
+            return window._savedCache || JSON.parse(localStorage.getItem('savedLetters')||'[]');
+        };
+        window._saveSaved = async function(arr) {
+            window._savedCache = arr;
+            localStorage.setItem('savedLetters', JSON.stringify(arr));
+            try {
+                await window.setDoc(window.doc(window.db, 'settings', 'bbSaved'), { letters: arr });
+            } catch(e) {}
+        };
+        // Firebase에서 쪽지 로드
+        window._loadLettersFromFirebase = async function() {
+            try {
+                const snap = await window.getDocs(window.collection(window.db, 'settings'));
+                snap.forEach(d => {
+                    if(d.id === 'bbLetters') {
+                        const arr = d.data().letters || [];
+                        window._lettersCache = arr;
+                        localStorage.setItem('allLetters', JSON.stringify(arr));
+                    }
+                    if(d.id === 'bbSaved') {
+                        const arr2 = d.data().letters || [];
+                        window._savedCache = arr2;
+                        localStorage.setItem('savedLetters', JSON.stringify(arr2));
+                    }
+                    if(d.id === 'bbDailySent') {
+                        // 캐시만 로드 (날짜 체크는 _getTodaySentTopics에서)
+                        window._bbDailySentCache = d.data();
+                    }
+                });
+            } catch(e) {}
+        };
+        // 오늘 이미 보낸 쪽지 주제들 추적 (Firebase)
+        window._getTodaySentTopics = async function() {
+            const today = new Date().toDateString();
+            if(window._bbDailySentCache && window._bbDailySentCache.date === today) {
+                return window._bbDailySentCache.topics || [];
+            }
+            return [];
+        };
+        window._addTodaySentTopic = async function(topic, letter) {
+            try {
+                const today = new Date().toDateString();
+                const current = await window._getTodaySentTopics();
+                const updated = [...current, { topic, letter: letter.substring(0, 80) }];
+                window._bbDailySentCache = { date: today, topics: updated };
+                await window.setDoc(window.doc(window.db, 'settings', 'bbDailySent'), { date: today, topics: updated });
+            } catch(e) {}
+        };
 
         const _BB_STATUS_JIKAN = ['오늘도 피곤하다','밥은 먹었냐','볼일 없으면 꺼져','별로임','기분 드럽다','왜 자꾸 연락함','그냥 있어','귀찮게 하지 마','할 말 없음','지금 바쁨'];
         const _BB_STATUS_JIUIN = ['오늘도 아름다움','심심한 날','굳이?','어디 가고 싶다','나른한 오후','연락해도 됨 뭐','오늘 좀 기분 좋음','이런 날씨 싫어','그냥','배고프다'];
@@ -1532,18 +1596,26 @@
             <div class="bb-friend-header">
                 <div style="display:flex;align-items:center;gap:4px;">
                     <img src="https://win98icons.alexmeub.com/icons/png/inetcfg_2-0.png" style="width:14px;height:14px;">
-                    <span>내 친구 (1/40)</span>
+                    <span>내 친구 (2/40)</span>
                     <img src="https://win98icons.alexmeub.com/icons/png/directory_closed-0.png" style="width:12px;margin-left:2px;">
                 </div>
                 <img src="https://win98icons.alexmeub.com/icons/png/directory_closed-0.png" style="width:12px;cursor:pointer;">
             </div>
             <div style="background:white;overflow-y:auto;min-height:210px;max-height:270px;">
                 <div class="bb-group-row"><span style="color:#6699aa;font-size:10px;">▼</span> 딸기곤듀-_*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(0/5)</div>
-                <div class="bb-friend-row" onclick="window.openBbInbox()">
+                <div class="bb-friend-row" onclick="window._openLastLetterPopup('지칸')">
                     <img src="${jikanImg}" style="width:32px;height:32px;border-radius:4px;border:1px solid #aaccdd;object-fit:cover;flex-shrink:0;">
                     <div style="flex:1;min-width:0;">
                         <div style="font-size:12px;font-weight:bold;color:#1a3a5e;font-family:Dotum,Gulim;">지칸★</div>
                         <div style="font-size:10px;color:#3366aa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="bbStatusJikan">(${st.jikan})</div>
+                    </div>
+                    <div class="bb-online-dot"></div>
+                </div>
+                <div class="bb-friend-row" onclick="window._openLastLetterPopup('지우인')">
+                    <img src="${jiuinImg}" style="width:32px;height:32px;border-radius:4px;border:1px solid #aaccdd;object-fit:cover;flex-shrink:0;">
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-size:12px;font-weight:bold;color:#1a3a5e;font-family:Dotum,Gulim;">디플z1ㅂ*</div>
+                        <div style="font-size:10px;color:#3366aa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="bbStatusJiuin">(${st.jiuin})</div>
                     </div>
                     <div class="bb-online-dot"></div>
                 </div>
@@ -1556,7 +1628,7 @@
                 <div class="bb-group-row"><span style="color:#6699aa;font-size:10px;">▶</span> 오스마일부☺&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="https://win98icons.alexmeub.com/icons/png/directory_closed-0.png" style="width:12px;"> <img src="https://win98icons.alexmeub.com/icons/png/directory_closed-0.png" style="width:12px;"></div>
             </div>
             <div class="bb-bottom">
-                <button class="bb-btn" onclick="window.openBbInbox()">친구추가</button>
+                <button class="bb-btn" onclick="window.openBbInbox()">쪽지함</button>
                 <button class="bb-btn">찾기</button>
                 <div style="flex:1;"></div>
                 <img src="https://win98icons.alexmeub.com/icons/png/search_file-0.png" style="width:14px;">
@@ -1567,6 +1639,17 @@
             const badge=document.getElementById('dailyBadge');if(badge)badge.style.display='none';
         };
 
+        // ─── 특정 캐릭터의 마지막 쪽지 팝업 ───
+        window._openLastLetterPopup = function(from) {
+            const all = window._getLetters();
+            const last = [...all].reverse().find(l => l.from === from);
+            if(!last) {
+                // 쪽지 없으면 쪽지함 열기
+                window.openBbInbox(); return;
+            }
+            window._openBbPopup(last);
+        };
+
         // ─── 쪽지함 열기 ───
         window.openBbInbox = function(){
             if(document.getElementById('bbInboxWin')){document.getElementById('bbInboxWin').style.display='flex';window._drawBbList('inbox');return;}
@@ -1575,7 +1658,7 @@
             p.innerHTML=`
             <div class="bb-title drag-handle">
                 <div style="display:flex;align-items:center;gap:5px;">
-                    <img src="https://win98icons.alexmeub.com/icons/png/mail-0.png" style="width:14px;height:14px;"> 받은 쪽지함
+                    <img src="https://win98icons.alexmeub.com/icons/png/mail-0.png" style="width:14px;height:14px;" onerror="this.outerHTML='✉️'"> 받은 쪽지함
                 </div>
                 <div style="display:flex;gap:2px;">
                     <div class="bb-tbtn">−</div><div class="bb-tbtn">□</div>
@@ -1628,7 +1711,7 @@
                 // 쪽지 내부 미리보기 (인라인 팝업)
                 lDiv.innerHTML=`
                     <div style="background:#d8eefa;border-top:1px solid #88b8d8;border-bottom:1px solid #88b8d8;padding:6px 10px;font-family:Dotum,Gulim;font-size:11px;color:#1a3a5e;display:flex;align-items:center;gap:8px;">
-                        <img src="https://win98icons.alexmeub.com/icons/png/mail-0.png" style="width:18px;height:18px;">
+                        <img src="https://win98icons.alexmeub.com/icons/png/mail-0.png" style="width:18px;height:18px;" onerror="this.outerHTML='✉️'">
                         <span>보낸친구 : 『${m.from}』♡ミ (${m.date||''})&nbsp;&nbsp; 대화 | 문자</span>
                     </div>
                     <div style="display:flex;background:white;min-height:100px;">
@@ -1640,9 +1723,12 @@
                         <button class="bb-btn" style="font-size:10px;padding:2px 10px;">친구정보</button>
                         <button class="bb-btn" style="font-size:10px;padding:2px 10px;margin-left:auto;" data-bm="${i}"
                             onclick="event.stopPropagation();window._toggleSave(this,'${tab}')">${isSaved?'★ 보관됨':'☆ 보관하기'}</button>
+                        <button class="bb-btn" style="font-size:10px;padding:2px 10px;color:#990000;" data-del-idx="${i}" data-del-tab="${tab}"
+                            onclick="event.stopPropagation();window._deleteLetter(this)">🗑 삭제</button>
                         <button class="bb-btn" style="font-size:10px;padding:2px 10px;" onclick="event.stopPropagation();this.closest('[data-ltr]').style.display='none'">닫기</button>
                     </div>`;
                 lDiv.querySelector('[data-bm]')._letter=m;
+                const delBtn=lDiv.querySelector('[data-del-idx]');if(delBtn)delBtn._letter=m;
                 row.onclick=()=>{
                     const open=lDiv.style.display==='block';
                     body.querySelectorAll('[data-ltr]').forEach(el=>el.style.display='none');
@@ -1663,7 +1749,7 @@
             pop.style.cssText='top:110px;left:28%;width:520px;';
             pop.innerHTML=`
             <div class="bb-popup-title drag-handle">
-                <img src="https://win98icons.alexmeub.com/icons/png/inetcfg_2-0.png" style="width:14px;height:14px;">
+                <img src="https://win98icons.alexmeub.com/icons/png/inetcfg_2-0.png" style="width:14px;height:14px;" onerror="this.style.display='none';this.nextSibling.style.display='inline'"><span style="display:none;font-size:12px;">💬</span>
                 <span style="flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">「${m.from}의작은ㅇr비새」♡ミ님으로부터 쪽지가 도착하였습니다.</span>
                 <div style="display:flex;gap:2px;flex-shrink:0;">
                     <div class="bb-tbtn">−</div><div class="bb-tbtn">□</div>
@@ -1671,7 +1757,7 @@
                 </div>
             </div>
             <div class="bb-popup-header">
-                <img src="https://win98icons.alexmeub.com/icons/png/mail-0.png" style="width:28px;height:28px;">
+                <img src="https://win98icons.alexmeub.com/icons/png/mail-0.png" style="width:28px;height:28px;" onerror="this.outerHTML='<span style=&quot;font-size:22px;line-height:1;&quot;>✉️</span>'">
                 <div style="font-family:Dotum,Gulim;font-size:12px;color:#1a3a5e;font-weight:bold;">
                     보낸친구 : 『${m.from}의작은ㅇr비새』♡ミ (${timeStr})&nbsp;&nbsp; 대화 | 문자
                 </div>
@@ -1693,86 +1779,298 @@
             window.makeResizable(pop);
         };
 
-        window._toggleSave=function(btn,tab){
+        window._toggleSave=async function(btn,tab){
             const m=btn._letter;if(!m)return;
             const saved=window._getSaved();
             const idx=saved.findIndex(s=>s.from===m.from&&s.dateKey===m.dateKey&&s.letter===m.letter);
             if(idx>=0){saved.splice(idx,1);btn.textContent='☆ 보관하기';}
             else{saved.push(m);btn.textContent='★ 보관됨';}
-            window._saveSaved(saved);
+            await window._saveSaved(saved);
         };
-        window._deleteSaved=function(idx){
+        window._deleteLetter=async function(btn){
+            const tab=btn.dataset.delTab||'inbox';
+            const m=btn._letter;if(!m)return;
+            if(!confirm(`'${m.subject}' 쪽지를 삭제하시겠습니까?`))return;
+            if(tab==='saved'){
+                const saved=window._getSaved();
+                const idx=saved.findIndex(s=>s.from===m.from&&s.dateKey===m.dateKey&&s.letter===m.letter);
+                if(idx>=0){saved.splice(idx,1);await window._saveSaved(saved);}
+            } else {
+                const all=window._getLetters();
+                const idx=all.findIndex(s=>s.from===m.from&&s.dateKey===m.dateKey&&s.letter===m.letter);
+                if(idx>=0){all.splice(idx,1);await window._saveLetters(all);}
+            }
+            window._drawBbList(tab);
+        };
+        window._deleteSaved=async function(idx){
             const saved=window._getSaved();
             saved.splice(saved.length-1-idx,1);
-            window._saveSaved(saved);
+            await window._saveSaved(saved);
             window._drawBbList('saved');
         };
 
-        window.fetchBbMsg=async function(mode){
+        // 날씨 정보 가져오기 (OpenWeatherMap 무료 API)
+        window._getWeather=async function(){
+            try{
+                // 무료 API 키 - https://openweathermap.org 에서 발급 (무료)
+                // 키 없어도 동작하도록 fallback 있음
+                const OWM_KEY=window.OWM_API_KEY||'';
+                if(!OWM_KEY) return null;
+                const r=await fetch(`https://api.openweathermap.org/data/2.5/weather?q=Seoul&appid=${OWM_KEY}&units=metric&lang=kr`);
+                const d=await r.json();
+                if(d.cod!==200) return null;
+                return {
+                    temp: Math.round(d.main.temp),
+                    feels: Math.round(d.main.feels_like),
+                    desc: d.weather[0].description,
+                    humidity: d.main.humidity,
+                    wind: d.wind.speed
+                };
+            }catch(e){return null;}
+        };
+
+        // ── 특별한 날 감지 ──
+        window._getSpecialDay = function() {
+            const now = new Date();
+            const startDate = new Date("2025-12-10T00:00:00");
+            const diff = Math.floor((now - startDate) / (1000*60*60*24));
+            const month = now.getMonth()+1, day = now.getDate();
+            const specials = [];
+            // 기념일
+            const milestones = [100,200,300,365,500,700,730,1000];
+            for(const ms of milestones) {
+                if(diff === ms) specials.push({type:'anniversary', label:`${ms}일`, diff, exact:true});
+                else if(diff === ms-1) specials.push({type:'anniversary', label:`${ms}일 하루 전`, diff, exact:false});
+                else if(diff === ms-7) specials.push({type:'anniversary', label:`${ms}일 일주일 전`, diff, exact:false});
+            }
+            // 1주년
+            const years = Math.floor(diff/365);
+            if(years>0 && diff===years*365) specials.push({type:'anniversary', label:`${years}주년`, diff, exact:true});
+            // 발렌타인/화이트데이/크리스마스/빼빼로데이
+            const holidays = [
+                {m:2, d:14, label:'발렌타인데이'},
+                {m:2, d:13, label:'발렌타인데이 하루 전'},
+                {m:3, d:14, label:'화이트데이'},
+                {m:3, d:13, label:'화이트데이 하루 전'},
+                {m:11, d:11, label:'빼빼로데이'},
+                {m:12, d:24, label:'크리스마스 이브'},
+                {m:12, d:25, label:'크리스마스'},
+            ];
+            for(const h of holidays) {
+                if(month===h.m && day===h.d) specials.push({type:'holiday', label:h.label, exact:true});
+            }
+            return specials;
+        };
+
+        // ── 오늘 캘린더 일정 가져오기 ──
+        window._getTodayCalendar = function() {
+            const now = new Date();
+            const key = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+            return window.config.calendar[key] || null;
+        };
+        // 가까운 미래 일정 가져오기 (3일 이내)
+        window._getUpcomingCalendar = function() {
+            const result = [];
+            for(let i=1; i<=3; i++) {
+                const d = new Date(); d.setDate(d.getDate()+i);
+                const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                if(window.config.calendar[key]) result.push({daysLater:i, memo:window.config.calendar[key]});
+            }
+            return result;
+        };
+
+        window.fetchBbMsg=async function(mode, sender=null){
             const body=document.getElementById('bbInboxBody');
             const today=new Date().toDateString();
             if(mode!=='refresh'&&mode!=='test'&&mode!=='auto'){
                 const cached=localStorage.getItem('bbMsg_'+today);
                 if(cached){window._drawBbList('inbox');return;}
             }
-            if(body)body.innerHTML='<div style="color:#669;font-size:11px;font-family:Dotum,Gulim;text-align:center;padding:30px;">쪽지 불러오는 중...</div>';
+            if(body && mode !== 'auto')body.innerHTML='<div style="color:#669;font-size:11px;font-family:Dotum,Gulim;text-align:center;padding:30px;">쪽지 불러오는 중...</div>';
+
             const dateStr=new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'});
             const timeStr=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
-            try{
-                const _url1=`${window.GEMINI_PROXY}?model=gemini-3.1-flash-lite-preview`;
-                const _payload1={contents:[{parts:[{text:`아래 형식의 JSON 배열만 출력해. 마크다운 코드블록 절대 쓰지 마. 순수한 JSON만.\n\n두 캐릭터가 버디버디로 쪽지 보내는 상황.\n【지칸】23세 남성. 짧고 거칠게. 욕 자연스럽게. 반말.\n【지우인】29세 남성. 나긋나긋. 가볍게. 반말.\n\n오늘(${dateStr} ${timeStr}) 일상 주제(날씨/주말/최근에 본 것/먹은 것/심심풀이 등)로 서로에게 짧게 1~2문장. subject는 5~8자.\n출력: [{"from":"지칸","to":"지우인","subject":"...","letter":"..."},{"from":"지우인","to":"지칸","subject":"...","letter":"..."}]`}]}],generationConfig:{responseMimeType:'application/json',temperature:1.2,maxOutputTokens:600}};
-                const _res1=await fetch(_url1,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(_payload1)});
-                const data=await _res1.json();
-                if(data.error)throw new Error(data.error.message);
-                if(!data.candidates||!data.candidates[0])throw new Error('응답 없음');
-                let raw=data.candidates[0].content.parts[0].text.replace(/```json/g,'').replace(/```/g,'').trim();
-                let msgs;
-                try{msgs=JSON.parse(raw);}catch(e1){
-                    try{msgs=JSON.parse(raw.replace(/(?<=:"[^"]*?)\n(?=[^"]*?")/gs,'\\n'));}catch(e2){
-                        const si=raw.indexOf('['),ei=raw.lastIndexOf(']');
-                        if(si<0||ei<0)throw new Error('파싱 실패');
-                        msgs=JSON.parse(raw.slice(si,ei+1));
-                    }
+            const hour=new Date().getHours();
+            const timeOfDay=hour<6?'새벽':hour<10?'오전':hour<14?'낮':hour<18?'오후':hour<22?'저녁':'밤';
+
+            // 날씨 정보
+            const weather=await window._getWeather();
+            const weatherStr=weather
+                ? `현재 서울 날씨: ${weather.desc}, 기온 ${weather.temp}°C(체감 ${weather.feels}°C), 습도 ${weather.humidity}%, 바람 ${weather.wind}m/s`
+                : `현재 시각 기준: ${timeOfDay}`;
+
+            // 오늘/가까운 캘린더 일정
+            const todayCal = window._getTodayCalendar();
+            const upcomingCal = window._getUpcomingCalendar();
+            let calendarHint = '';
+            if(todayCal) calendarHint += `오늘 캘린더 일정: "${todayCal.split('\n')[0].substring(0,50)}" — 이 일정에 맞게 자연스럽게 언급하거나 연관 주제를 녹여도 좋다. `;
+            if(upcomingCal.length>0) {
+                const uc = upcomingCal[0];
+                calendarHint += `${uc.daysLater}일 후 예정: "${uc.memo.split('\n')[0].substring(0,40)}" — 가볍게 언급 가능. `;
+            }
+
+            // 특별한 날 감지
+            const specials = window._getSpecialDay();
+            let specialHint = '';
+            if(specials.length>0) {
+                const sp = specials[0];
+                if(sp.type==='anniversary') {
+                    specialHint = `오늘은 두 사람이 만난 지 ${sp.label}이다. `;
+                    if(sp.exact) specialHint += `정확히 기념일이다. 이 날을 의식하는 내용을 반드시 쪽지에 녹여라 (단, 캐릭터 특성상 직접적인 감사/감동 표현은 금물 — 지칸은 어색하게 무시하거나 뾰족하게 반응, 지우인은 능글맞게 한 마디 건네는 식). `;
+                    else specialHint += `곧 다가올 기념일을 슬쩍 언급해도 좋다. `;
+                } else {
+                    specialHint = `오늘은 ${sp.label}이다. 이 날에 맞는 분위기를 은근히 반영해도 좋다. `;
                 }
+            }
+
+            // 오늘 이미 보낸 쪽지들 (중복 방지)
+            const todaySentTopics = await window._getTodaySentTopics();
+            let avoidHint = '';
+            if(todaySentTopics.length>0) {
+                const snippets = todaySentTopics.map(t=>t.letter).join(' | ');
+                avoidHint = `\n[중복 금지] 오늘 이미 이런 내용의 쪽지가 발송됐다: "${snippets.substring(0,200)}" — 같은 주제나 소재를 반복하지 말고, 완전히 다른 주제와 각도로 써야 한다.`;
+            }
+
+            // 최근 받은 쪽지 (답장 맥락)
+            const allLetters = window._getLetters();
+            const recentFromOther = allLetters.filter(l => sender && l.from !== sender).slice(-3);
+            let replyHint = '';
+            if(recentFromOther.length>0 && Math.random()<0.45) {
+                // 45% 확률로 상대방 이전 쪽지에 반응
+                const lastOther = recentFromOther[recentFromOther.length-1];
+                replyHint = `\n[선택적 답장 맥락] 상대방이 최근 이런 쪽지를 보냈다: "${lastOther.letter.substring(0,120)}" — 이것에 직접 반응하거나 이어받는 내용으로 써도 좋다 (반드시 해야 하는 건 아님, 자연스럽게 판단할 것).`;
+            }
+
+            // sender가 없으면 랜덤으로 한 명만 선택
+            const senders = sender ? [sender] : [Math.random()<0.5?'지칸':'지우인'];
+
+            try{
+                const msgs = [];
+                for(const from of senders){
+                    const to = from==='지칸'?'지우인':'지칸';
+                    const charDesc = from==='지칸'
+                        ? '23세 남성. NSI 요원. 198cm의 거구이며 덩치가 매우 크고 힘이 세다. 들개처럼 무식하고 거칠며 행동이 앞선다. 지우인의 문란함을 극도로 혐오하면서도 소유욕 때문에 곁에 둔다. 빡치면 "씨발", "존나", "지랄", "처맞을래" 등 거친 욕과 반말을 쓴다. 하지만 이는 굉장히 화났을 때만이며, 평소에는 체념에 가까워 상대를 향한 직접적은 쌍욕은 잘 하지 않는다. 애정표현은 전혀 없고, 쪽지 내용은 주로 지우인의 외도 의심, 귀가 협박, 농땡이 지적, 혹은 힘으로 억누르겠다는 으름장이다. 지우인의 장난을 전혀 받아주지 않고 으르렁거림.'
+                        : '30세 남성. NSI 요원. 뼛속까지 결여된 싸이코패스인데 겉으로는 늘 생글생글 웃으며 여유롭다. 지칸을 "애", "멧돼지" 취급하며 살살 긁는 게 취미. 지칸의 집착과 분노를 "서방님", "단속반", "남친 컨셉" 등의 단어로 능글맞게 비꼬며 즐긴다. (예시 단어 너무 남발 금지. 뉘앙스만 참고) 단, 직접적인 욕설은 사용하지 않음. 바람기가 심하며, 이를 숨기기는커녕 대놓고 전시해서 지칸을 화나게 만든다. 쪽지 말투는 나긋나긋하고 장난기 넘치지만 묘하게 재수 없고 뻔뻔함.';
+
+                    const _url=`${window.GEMINI_PROXY}?model=gemini-3.1-flash-lite-preview`;
+                    const prompt=`JSON 객체 하나만 출력해. 마크다운 없이 순수 JSON만.
+
+캐릭터: ${from} (${charDesc})
+상황: ${from}이 동거인이자 섹스 파트너인 ${to}에게 보내는 짧은 일상 쪽지.
+
+${weatherStr}
+현재 시간대: ${timeOfDay} (${dateStr} ${timeStr})
+${specialHint}${calendarHint}${replyHint}${avoidHint}
+
+[실제 두 사람의 대화 예시 - 이 말투와 호흡을 정확히 따라할 것]
+지칸: 너는 처자느라 몰랐겠지만 응급 수술하고 스무 바늘 꿰맸어. 붕대 풀 때까지 니 머리 내가 감겨줘야 돼.
+지우인: 너 손 되게 따뜻하네?
+지칸: 니가 차가운거야. 걸레 타이틀 떼면 뭐해, 혼자 씻지도 못하고 자지도 안서는 환자야 넌 이제.
+지우인: 씻는 건 조금만 나아도 괜찮아질 거고. 어제 치료 됐잖아?
+지칸: 이제야 좀 듣냐? 속 편한 새끼;
+지우인: 솔직히 말해봐. 나 되게 보고 싶었지? 걱정되고 허전하고 심심했지.
+지칸: 아니. 너 뒤지면 남들한테 설명은 어떻게 하지, 장례는 누가 치르지 그런 걱정은 했다 왜.
+지우인: 아, 그러네. 마조히스트 달래주려다가 살인죄 뒤집어쓰면 웃기긴 하겠는데. 그냥 죽었어야 하나.
+지칸: 웃기네. 니 손 차가워.
+지우인: 청산 시켰으면 니가 10인분 해야지.
+지칸: 너 환자야. 환자가 뭔지 몰라 니?
+지우인: 그냥 손만 얹어두자고. 나 이거 버릇이라 얹고 있어야 해.
+지칸: 모르지, 너가 자꾸 또 까불어서 못참고 박을지. 그럼 너 손해지 내 손해냐.
+지우인: 나 물 좀 줘.
+지칸: 입 벌려.
+지우인: 투박하긴. 다정하게 좀 해봐.
+지칸: 마시고 정신 좀 차려 이제.
+지우인: 다리 좀 주물러 봐.
+지칸: 내가 니 머슴이냐.
+지우인: 돌쇠처럼 생기긴 했지. 어허, 귀여운 짓 좀 해보라니까.
+지칸: 이제와서 형 소리가 듣고 싶어? 너 형이라 부르던게 존나 아득한데 이제.
+지우인: 빨리. 나 환자야. 형, 응?
+지칸: 하여간 표정 꾸며내는 건 기가 막히게 하지. 형 안괜찮지? 형 좆된거야.
+지우인: 애초에 너 만난 것부터 이미 좆된 거야. 새삼스럽게.
+지칸: 너 너무 유명한 마조 걸레라 주변에서 다 스스로 원했겠거니 했을걸.
+지우인: 나 죽는 꿈꾸고 놀래서 일어나자마자 거즈부터 갈아준 놈이 퍽이나.
+지칸: 그 거즈 다시 뜯은 건 또 누구게. 너 잘 땐 진짜 쥭은듯이 자더라.
+지우인: 너 설마 나 잘 때 뭔 짓 한 거 아냐? 욕도 줄고 영 잠잠한 게 수상한데.
+지칸: 그냥 자는 것도 아니고 칼 처맞고 골골대고 있는 놈한테 뭘 하는데 뭘. 바보새끼라고 욕은 한 바가지 했어.
+지우인: 수습해야해서 별로? 그럼 알아서 수습만 되면 기분은 나쁘지 않았단 건가?
+지칸: 기분 좋았다고 하면 뭐 어쩌게. 또 찔릴거야?
+지칸: 입 나불대는 거 보니까 멀쩡하네. 일어나. 걸어.
+지우인: 왜. 갑자기 왜 가자고 하는데, 응? 지금 딱 편했는데.
+지칸: 미친 놈... 여기서 살아. 난 이 좆같은 간이 의자에 그만 앉아있어야겠어.
+지우인: 아. 나 두고 가려고?
+지칸: 하루나 봐줬음 오래 봐줬다.
+지우인: 야.
+
+[말투 핵심 - 반드시 지킬 것]
+- 지칸: 짧고 무뚝뚝. 설명 안 함. 감정 절대 직접 표현 안 함. 걱정도 "장례는 누가 치르냐"식으로 돌려 말함. "새끼" "미친놈" "좆같은" 수준 욕. 이모티콘 절대 금지. 괄호 행동 묘사 금지.
+- 지우인: 능글맞고 빠져나가는 말투. 도발 즐김. "ㅋ" "ㅎ" 가끔. 뻔뻔하게 부탁. 약한 척 연기. 괄호 행동 묘사 금지. 지칸한테 '예쁘다'는 식의 표현 금지. 못생겼다, 투박하다고 자주 놀림.
+- 둘 다: 반말. 짧게 끊어 말함. 쪽지니까 1~3문장. 문어체 금지.
+
+출력: {"from":"${from}","to":"${to}","subject":"...","letter":"...","topic":"(한 단어 주제 요약)"}`;
+
+                    const payload={contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:1.3,maxOutputTokens:350}};
+                    const res=await fetch(_url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+                    const data=await res.json();
+                    if(data.error)throw new Error(data.error.message);
+                    if(!data.candidates||!data.candidates[0])throw new Error('응답 없음');
+                    let raw=data.candidates[0].content.parts[0].text.replace(/```json/g,'').replace(/```/g,'').trim();
+                    const si=raw.indexOf('{'),ei=raw.lastIndexOf('}');
+                    if(si<0||ei<0)throw new Error('파싱 실패');
+                    const msg=JSON.parse(raw.slice(si,ei+1));
+                    msgs.push(msg);
+                    // 오늘 발송 내역 기록 (중복 방지용)
+                    await window._addTodaySentTopic(msg.topic||msg.subject||'', msg.letter||'');
+                }
+
                 const dateShort=new Date().toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
                 const dk=today+(mode==='test'||mode==='auto'?'_t'+Date.now():'');
                 msgs.forEach(m=>{m.date=dateShort;m.dateKey=dk;});
+
                 if(mode==='test'||mode==='auto'){
-                    window._saveLetters([...window._getLetters(),...msgs]);
+                    await window._saveLetters([...window._getLetters(),...msgs]);
                 } else {
                     localStorage.setItem('bbMsg_'+today,JSON.stringify(msgs));
-                    window._saveLetters([...window._getLetters().filter(l=>l.dateKey!==today),...msgs]);
+                    await window._saveLetters([...window._getLetters().filter(l=>l.dateKey!==today),...msgs]);
                 }
                 msgs.forEach((m,i)=>setTimeout(()=>{
                     const ns=document.getElementById('notifSound');if(ns){ns.currentTime=0;ns.play().catch(()=>{});}
                     const badge=document.getElementById('dailyBadge');if(badge)badge.style.display='block';
                     window.pushNotif('💬 버디버디 쪽지',`${m.from}님의 쪽지 도착\n"${m.subject}"`,()=>{window._openBbPopup(m);});
                 },i*900));
-                window._drawBbList('inbox');
+                // 쪽지함이 열려있을 때만 목록 갱신 (안 열려있으면 건드리지 않음)
+                if(document.getElementById('bbInboxWin') && document.getElementById('bbInboxBody')) {
+                    window._drawBbList('inbox');
+                }
             }catch(err){
-                if(body)body.innerHTML=`<div style="color:#c00;font-size:11px;font-family:Dotum,Gulim;text-align:center;padding:20px;">오류: ${err.message}</div>`;
+                if(body && mode !== 'auto')body.innerHTML=`<div style="color:#c00;font-size:11px;font-family:Dotum,Gulim;text-align:center;padding:20px;">오류: ${err.message}</div>`;
             }
         };
 
-        // ─── 랜덤 알림 스케줄 ───
+        // ─── 랜덤 알림 스케줄 (지칸/지우인 각자 독립적으로) ───
         window.initDailyMsg=function(){
             const today=new Date().toDateString();
-            if(!localStorage.getItem('bbMsg_'+today)){
-                const badge=document.getElementById('dailyBadge');if(badge)badge.style.display='block';
-                setTimeout(()=>{
-                    const ns=document.getElementById('notifSound');if(ns){ns.currentTime=0;ns.play().catch(()=>{});}
-                    window.pushNotif('💬 버디버디','새 쪽지가 도착했어요.',()=>window.openBuddyBuddy());
-                },2000);
-            }
             const now=new Date(),midnight=new Date(now);midnight.setHours(24,0,0,0);
             const remaining=midnight-now;
-            const count=2+Math.floor(Math.random()*2);
-            for(let i=0;i<count;i++){
-                const delay=Math.floor(Math.random()*remaining*0.85)+remaining*0.05;
-                setTimeout(()=>{window.fetchBbMsg('auto');},delay);
-            }
+
+            // 특별한 날이면 추가 발송 확률 ↑
+            const specials = window._getSpecialDay();
+            const isSpecialDay = specials.some(s=>s.exact);
+
+            // 하루 총 2~3회 (특별한 날은 3회 고정), 지칸/지우인 랜덤 배분
+            const totalCount = isSpecialDay ? 3 : (Math.random() < 0.4 ? 3 : 2);
+            const senderPool = [];
+            for(let i=0; i<totalCount; i++) senderPool.push(Math.random()<0.5?'지칸':'지우인');
+
+            senderPool.forEach((who, i) => {
+                const delay = Math.floor(remaining * (0.1 + (0.8 * (i+1) / (totalCount+1)) + (Math.random()*0.08 - 0.04)));
+                setTimeout(()=>window.fetchBbMsg('auto', who), delay);
+            });
+
+            // 자정 리셋
             setTimeout(()=>{localStorage.removeItem('bbMsg_'+today);window.initDailyMsg();},remaining);
         };
+
+
 
         // 🌐 인터넷 익스플로러
         // 🗑️ 휴지통 드래그/우클릭
