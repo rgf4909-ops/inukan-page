@@ -149,12 +149,12 @@
     </div>
 
     <div class="desktop-icons">
-        <div class="icon-item" onclick="window.openDailyMsg()">
+        <div class="icon-item" onclick="window.openBuddyBuddy()">
             <div style="position:relative;width:45px;height:45px;margin-bottom:5px;">
                 <img src="https://i.postimg.cc/T38xjwg5/illeoseuteu20.png" style="width:45px;height:45px;filter:drop-shadow(2px 2px 2px black);">
                 <div id="dailyBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:#ff3366;color:white;border-radius:50%;width:14px;height:14px;font-size:9px;font-family:Gulim;font-weight:bold;line-height:14px;text-align:center;">!</div>
             </div>
-            <span class="icon-label">메신저</span>
+            <span class="icon-label">버디버디</span>
         </div>
         <div class="icon-item" onclick="window.openExplorer('folder-text', '로컬 디스크 (C:) \\ 기록 아카이브')">
             <img src="https://win98icons.alexmeub.com/icons/png/directory_open_file_mydocs-4.png" class="icon-img">
@@ -243,8 +243,8 @@
     <div class="start-menu" id="startMenu">
         <div class="start-menu-sidebar"><span>Windows 98</span></div>
         <div class="start-menu-items">
-            <div class="start-menu-item" onclick="window.openDailyMsg(); window.toggleStartMenu()">
-                <img src="https://win98icons.alexmeub.com/icons/png/inetcfg_2-0.png" width="24"> <span>메신저</span>
+            <div class="start-menu-item" onclick="window.openBuddyBuddy(); window.toggleStartMenu()">
+                <img src="https://win98icons.alexmeub.com/icons/png/inetcfg_2-0.png" width="24"> <span>버디버디</span>
             </div>
             <div class="start-menu-item" onclick="window.openCalendar(); window.toggleStartMenu()">
                 <img src="https://win98icons.alexmeub.com/icons/png/calendar-0.png" width="24"> <span>일정 달력</span>
@@ -259,6 +259,10 @@
         </div>
     </div>
 
+    <!-- ✅ Gemini API 프록시 URL — Worker 배포 후 여기만 수정하세요 -->
+    <script>
+        window.GEMINI_PROXY = 'young-shadow-bf18geminiapi.rgf4909.workers.dev';
+    </script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, updateDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -1386,99 +1390,307 @@
             }
         });
 
-        // 💌 데일리 메시지 (Gemini 1.5 Flash - 무료 티어 지원)
         // =========================================
-        // 💌 메신저 (매일 편지, 누적 저장)
+        // 💬 버디버디 (쪽지 시스템)
         // =========================================
         window._getLetters  = ()=>JSON.parse(localStorage.getItem('allLetters')||'[]');
         window._saveLetters = (a)=>localStorage.setItem('allLetters',JSON.stringify(a));
         window._getSaved    = ()=>JSON.parse(localStorage.getItem('savedLetters')||'[]');
         window._saveSaved   = (a)=>localStorage.setItem('savedLetters',JSON.stringify(a));
 
-        window.openDailyMsg=function(){
-            if(document.getElementById('dailyMsgWin')){
-                document.getElementById('dailyMsgWin').style.display='flex';
-                window._drawLetterList('inbox');
-                return;
-            }
-            const p=document.createElement('div');p.className='xp-window draggable';p.id='dailyMsgWin';
-            p.style.cssText='top:60px;right:40px;left:auto;width:460px;height:540px;position:fixed;z-index:2000;display:flex;flex-direction:column;overflow:visible;';
+        const _BB_STATUS_JIKAN = ['오늘도 피곤하다','밥은 먹었냐','볼일 없으면 꺼져','별로임','기분 드럽다','왜 자꾸 연락함','그냥 있어','귀찮게 하지 마','할 말 없음','지금 바쁨'];
+        const _BB_STATUS_JIUIN = ['오늘도 아름다움','심심한 날','굳이?','어디 가고 싶다','나른한 오후','연락해도 됨 뭐','오늘 좀 기분 좋음','이런 날씨 싫어','그냥','배고프다'];
+        window._bbTodayStatus = function(){
+            const seed=new Date().toDateString(); let h=0;
+            for(let i=0;i<seed.length;i++) h=(h*31+seed.charCodeAt(i))>>>0;
+            return {jikan:_BB_STATUS_JIKAN[h%_BB_STATUS_JIKAN.length], jiuin:_BB_STATUS_JIUIN[(h*7+3)%_BB_STATUS_JIUIN.length]};
+        };
+
+        // ─── 버디버디 공통 CSS 주입 ───
+        (function(){
+            if(document.getElementById('bbStyle')) return;
+            const s=document.createElement('style'); s.id='bbStyle';
+            s.textContent=`
+            .bb-win{font-family:'Dotum','돋움','Gulim',sans-serif;font-size:12px;position:fixed;z-index:2000;display:flex;flex-direction:column;
+                background:#c0d8ec;border:2px solid;border-color:#e8f4ff #4488aa #4488aa #e8f4ff;
+                box-shadow:2px 2px 6px rgba(0,0,0,0.5);}
+            .bb-title{height:20px;background:linear-gradient(to right,#1a78b8,#5ab4e8);display:flex;align-items:center;
+                justify-content:space-between;padding:0 3px;color:white;font-size:11px;font-weight:bold;cursor:move;user-select:none;flex-shrink:0;}
+            .bb-tbtn{width:16px;height:14px;background:linear-gradient(to bottom,#ddeeff,#aaccdd);
+                border:1px solid #669;display:flex;align-items:center;justify-content:center;
+                font-size:9px;cursor:pointer;color:#336;font-weight:bold;}
+            .bb-tbtn:hover{background:#ffaaaa;}
+            .bb-menubar{background:#d8eefa;border-bottom:1px solid #88c0de;padding:1px 6px;
+                display:flex;gap:12px;font-size:11px;color:#1a4a6e;flex-shrink:0;}
+            .bb-menubar span{cursor:pointer;padding:1px 3px;}
+            .bb-menubar span:hover{background:#a8d4f0;}
+            .bb-profile-area{background:linear-gradient(to bottom,#eaf6ff,#c8e8f8);border-bottom:2px solid #88c0de;
+                padding:6px 8px;display:flex;align-items:center;gap:7px;flex-shrink:0;}
+            .bb-tabs{background:#c8e0f0;border-bottom:2px solid #88c0de;display:flex;flex-shrink:0;}
+            .bb-tab{flex:1;text-align:center;padding:5px 2px 4px;font-size:11px;color:#1a5580;cursor:pointer;
+                border-right:1px solid #88c0de;white-space:nowrap;display:flex;align-items:center;justify-content:center;gap:3px;}
+            .bb-tab:last-child{border-right:none;}
+            .bb-tab:hover{background:#b0d8f0;}
+            .bb-tab.active{background:#eaf6ff;font-weight:bold;color:#003366;}
+            .bb-tab img{width:18px;height:18px;}
+            .bb-friend-header{background:linear-gradient(to bottom,#daeefa,#c4dcee);border-bottom:1px solid #88c0de;
+                padding:3px 8px;font-size:11px;color:#1a3a5e;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+            .bb-group-row{background:linear-gradient(to bottom,#e0f0fa,#cce4f4);border-bottom:1px solid #b8d8ee;
+                padding:2px 10px;font-size:11px;color:#1a4a6e;display:flex;align-items:center;gap:5px;cursor:pointer;}
+            .bb-group-row:hover{background:#c0dcf0;}
+            .bb-friend-row{padding:5px 8px;display:flex;align-items:center;gap:8px;cursor:pointer;
+                border-bottom:1px solid #ddeefa;background:white;}
+            .bb-friend-row:hover{background:#eef8ff;}
+            .bb-online-dot{width:8px;height:8px;border-radius:50%;background:#33cc33;border:1px solid #119911;flex-shrink:0;margin-left:auto;}
+            .bb-bottom{background:linear-gradient(to bottom,#d8eefa,#c0d8ec);border-top:2px solid #88c0de;
+                padding:5px 6px;display:flex;gap:4px;align-items:center;flex-shrink:0;}
+            .bb-btn{background:linear-gradient(to bottom,#eaf6ff,#c8dcec);
+                border:1px solid #88b0cc;border-bottom-color:#4488aa;border-right-color:#4488aa;
+                padding:2px 10px;font-size:11px;font-family:Dotum,Gulim,sans-serif;color:#1a3a5e;cursor:pointer;}
+            .bb-btn:hover{background:linear-gradient(to bottom,#d0ecff,#a8ccde);}
+            .bb-btn:active{border-color:#4488aa #88b0cc #88b0cc #4488aa;padding:3px 9px 1px 11px;}
+            /* 쪽지 팝업 전용 */
+            .bb-popup{position:fixed;z-index:9500;display:flex;flex-direction:column;
+                background:#c0d8ec;border:2px solid;border-color:#e8f4ff #4488aa #4488aa #e8f4ff;
+                box-shadow:3px 3px 10px rgba(0,0,0,0.6);font-family:Dotum,Gulim,sans-serif;}
+            .bb-popup-title{height:22px;background:linear-gradient(to right,#1a78b8,#5ab4e8);
+                display:flex;align-items:center;padding:0 4px;color:white;font-size:11px;
+                font-weight:bold;cursor:move;user-select:none;flex-shrink:0;gap:5px;}
+            .bb-popup-header{background:linear-gradient(to bottom,#eaf6ff,#cce8f8);border-bottom:2px solid #88c0de;
+                padding:8px 12px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+            .bb-popup-content{display:flex;flex:1;min-height:0;}
+            .bb-popup-text{flex:1;background:white;border:2px inset #99bbcc;
+                margin:8px 4px 8px 8px;padding:10px 12px;font-size:13px;color:#222;
+                line-height:1.9;overflow-y:auto;white-space:pre-line;}
+            .bb-popup-imgwrap{width:158px;flex-shrink:0;background:linear-gradient(to bottom,#daeefa,#b8d4ea);
+                border-left:1px solid #88c0de;display:flex;align-items:center;justify-content:center;}
+            .bb-popup-imgwrap img{width:148px;height:200px;object-fit:cover;border:2px solid #88aacc;}
+            .bb-popup-btns{background:linear-gradient(to bottom,#d8eefa,#c0d4e8);border-top:2px solid #88c0de;
+                padding:6px 10px;display:flex;gap:6px;align-items:center;flex-shrink:0;}
+            .bb-popup-statusbar{background:#b8d0e4;border-top:1px solid #88aabb;
+                padding:2px 8px;font-size:11px;color:#336699;font-family:Dotum,Gulim,sans-serif;flex-shrink:0;}
+            `;
+            document.head.appendChild(s);
+        })();
+
+        // ─── 친구창 열기 ───
+        window.openBuddyBuddy = function(){
+            if(document.getElementById('bbWin')){document.getElementById('bbWin').style.display='flex';return;}
+            const st=window._bbTodayStatus();
+            const jiuinImg=window.config.profiles.jiuin;
+            const jikanImg=window.config.profiles.jikan;
+            const letters=window._getLetters();
+            const unread=letters.filter(l=>!localStorage.getItem('bb_read_'+l.dateKey+'_'+l.from)).length;
+
+            const p=document.createElement('div');
+            p.className='bb-win draggable';p.id='bbWin';
+            p.style.cssText='top:60px;left:120px;width:248px;';
             p.innerHTML=`
-                <div class="xp-title-bar drag-handle">
-                    <div style="display:flex;align-items:center;gap:6px;">
-                        <img src="https://win98icons.alexmeub.com/icons/png/inetcfg_2-0.png" style="width:14px;">
-                        <span>메신저 - 받은 편지함</span>
+            <div class="bb-title drag-handle">
+                <div style="display:flex;align-items:center;gap:5px;">
+                    <img src="https://win98icons.alexmeub.com/icons/png/inetcfg_2-0.png" style="width:14px;height:14px;"> 버디버디
+                </div>
+                <div style="display:flex;gap:2px;">
+                    <div class="bb-tbtn">−</div>
+                    <div class="bb-tbtn">□</div>
+                    <div class="bb-tbtn" onclick="document.getElementById('bbWin').style.display='none'">✕</div>
+                </div>
+            </div>
+            <div class="bb-menubar">
+                <span>파일(F)</span><span>친구(B)</span><span>기능(A)</span><span>도구(I)</span><span>도움말(H)</span>
+            </div>
+            <div class="bb-profile-area">
+                <img src="${jiuinImg}" style="width:42px;height:42px;border-radius:5px;border:1px solid #88aacc;object-fit:cover;">
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:13px;font-weight:bold;color:#1a3a5e;font-family:Dotum,Gulim,sans-serif;">디플z1ㅂ*</div>
+                    <div style="font-size:11px;color:#2255aa;font-family:Dotum,Gulim,sans-serif;">내 마음의 별로.*&nbsp; 디플 10기</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:3px;">
+                    <img src="https://win98icons.alexmeub.com/icons/png/home-0.png" style="width:22px;height:22px;cursor:pointer;" title="홈피">
+                    <img src="https://win98icons.alexmeub.com/icons/png/inetcfg_2-0.png" style="width:22px;height:22px;cursor:pointer;" title="쪽지">
+                    <img src="https://win98icons.alexmeub.com/icons/png/directory_open-0.png" style="width:22px;height:22px;cursor:pointer;" title="설정">
+                </div>
+            </div>
+            <div class="bb-tabs">
+                <div class="bb-tab active">
+                    <img src="https://win98icons.alexmeub.com/icons/png/inetcfg_2-0.png"> 문자+
+                </div>
+                <div class="bb-tab" onclick="window.openBbInbox()">
+                    <img src="https://win98icons.alexmeub.com/icons/png/inetcfg_2-0.png"> 버디폰
+                </div>
+                <div class="bb-tab" onclick="window.openBbInbox()">
+                    <img src="https://win98icons.alexmeub.com/icons/png/mail-0.png"> 채팅
+                    ${unread>0?`<span style="background:#ff3344;color:white;border-radius:8px;font-size:9px;padding:0 4px;margin-left:2px;">${unread}</span>`:''}
+                </div>
+                <div class="bb-tab">
+                    <img src="https://win98icons.alexmeub.com/icons/png/mmsys_cp-0.png"> 뮤직
+                </div>
+                <div class="bb-tab">
+                    <img src="https://win98icons.alexmeub.com/icons/png/write_wordpad-0.png"> 문자
+                </div>
+            </div>
+            <div class="bb-friend-header">
+                <div style="display:flex;align-items:center;gap:4px;">
+                    <img src="https://win98icons.alexmeub.com/icons/png/inetcfg_2-0.png" style="width:14px;height:14px;">
+                    <span>내 친구 (1/40)</span>
+                    <img src="https://win98icons.alexmeub.com/icons/png/directory_closed-0.png" style="width:12px;margin-left:2px;">
+                </div>
+                <img src="https://win98icons.alexmeub.com/icons/png/directory_closed-0.png" style="width:12px;cursor:pointer;">
+            </div>
+            <div style="background:white;overflow-y:auto;min-height:210px;max-height:270px;">
+                <div class="bb-group-row"><span style="color:#6699aa;font-size:10px;">▼</span> 딸기곤듀-_*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(0/5)</div>
+                <div class="bb-friend-row" onclick="window.openBbInbox()">
+                    <img src="${jikanImg}" style="width:32px;height:32px;border-radius:4px;border:1px solid #aaccdd;object-fit:cover;flex-shrink:0;">
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-size:12px;font-weight:bold;color:#1a3a5e;font-family:Dotum,Gulim;">지칸★</div>
+                        <div style="font-size:10px;color:#3366aa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="bbStatusJikan">(${st.jikan})</div>
                     </div>
-                    <div class="xp-close-btn" onclick="document.getElementById('dailyMsgWin').style.display='none'">✕</div>
+                    <div class="bb-online-dot"></div>
                 </div>
-                <div style="background:#c0c0c0;padding:2px 8px;font-size:11px;color:black;border-bottom:1px solid #808080;font-family:Gulim;display:flex;gap:10px;align-items:center;">
-                    <span id="tab-inbox" style="cursor:pointer;font-weight:bold;border-bottom:2px solid #000080;" onclick="window._drawLetterList('inbox')">📨 받은편지함</span>
-                    <span id="tab-saved" style="cursor:pointer;" onclick="window._drawLetterList('saved')">★ 보관함</span>
-                    <span style="margin-left:auto;cursor:pointer;color:#555;" onclick="window.fetchDailyMsg('refresh')">새로고침</span>
-                    <span style="cursor:pointer;color:#0000cc;border:1px solid #aaa;padding:1px 6px;background:#fffde0;" onclick="window.fetchDailyMsg('test')">테스트</span>
-                </div>
-                <div id="dailyMsgBody" style="flex:1;overflow-y:auto;background:#fff;display:flex;flex-direction:column;min-height:0;"></div>`;
+                <div class="bb-group-row"><span style="color:#6699aa;font-size:10px;">▶</span> 2귀엄2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(0/4)</div>
+                <div class="bb-group-row"><span style="color:#6699aa;font-size:10px;">▶</span> ♥Or교천왕☆&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(0/4)</div>
+                <div class="bb-group-row"><span style="color:#6699aa;font-size:10px;">▶</span> ☆박하소녀☆&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(0/3)</div>
+                <div class="bb-group-row"><span style="color:#6699aa;font-size:10px;">▶</span> 시저시져o(우양 배고프당 맛난거 사줘욤)</div>
+                <div class="bb-group-row"><span style="color:#6699aa;font-size:10px;">▶</span> 꼭니녀™(나보다 예쁜 사람 다 나와봐)</div>
+                <div class="bb-group-row"><span style="color:#6699aa;font-size:10px;">▶</span> 꽃들이♡&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(0/2)</div>
+                <div class="bb-group-row"><span style="color:#6699aa;font-size:10px;">▶</span> 오스마일부☺&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="https://win98icons.alexmeub.com/icons/png/directory_closed-0.png" style="width:12px;"> <img src="https://win98icons.alexmeub.com/icons/png/directory_closed-0.png" style="width:12px;"></div>
+            </div>
+            <div class="bb-bottom">
+                <button class="bb-btn" onclick="window.openBbInbox()">친구추가</button>
+                <button class="bb-btn">찾기</button>
+                <div style="flex:1;"></div>
+                <img src="https://win98icons.alexmeub.com/icons/png/search_file-0.png" style="width:14px;">
+                <input class="bb-search" placeholder="통합검색" id="bbSearchInput">
+            </div>`;
             document.body.appendChild(p);
             window.makeResizable(p);
             const badge=document.getElementById('dailyBadge');if(badge)badge.style.display='none';
-            window._drawLetterList('inbox');
         };
 
-        window._drawLetterList=function(tab){
-            // 탭 스타일
-            const ti=document.getElementById('tab-inbox'),ts=document.getElementById('tab-saved');
-            if(ti&&ts){ti.style.fontWeight=tab==='inbox'?'bold':'normal';ti.style.borderBottom=tab==='inbox'?'2px solid #000080':'none';ts.style.fontWeight=tab==='saved'?'bold':'normal';ts.style.borderBottom=tab==='saved'?'2px solid #000080':'none';}
-            const body=document.getElementById('dailyMsgBody');if(!body)return;
-            body.innerHTML='';
+        // ─── 쪽지함 열기 ───
+        window.openBbInbox = function(){
+            if(document.getElementById('bbInboxWin')){document.getElementById('bbInboxWin').style.display='flex';window._drawBbList('inbox');return;}
+            const p=document.createElement('div');p.className='bb-win draggable';p.id='bbInboxWin';
+            p.style.cssText='top:90px;left:385px;width:400px;height:480px;';
+            p.innerHTML=`
+            <div class="bb-title drag-handle">
+                <div style="display:flex;align-items:center;gap:5px;">
+                    <img src="https://win98icons.alexmeub.com/icons/png/mail-0.png" style="width:14px;height:14px;"> 받은 쪽지함
+                </div>
+                <div style="display:flex;gap:2px;">
+                    <div class="bb-tbtn">−</div><div class="bb-tbtn">□</div>
+                    <div class="bb-tbtn" onclick="document.getElementById('bbInboxWin').style.display='none'">✕</div>
+                </div>
+            </div>
+            <div style="background:#d0e8f8;border-bottom:1px solid #88c0de;padding:2px 8px;font-size:11px;font-family:Dotum,Gulim;display:flex;gap:12px;align-items:center;flex-shrink:0;">
+                <span id="bb-tab-inbox" style="cursor:pointer;font-weight:bold;color:#003366;border-bottom:2px solid #1a78b8;" onclick="window._drawBbList('inbox')">📨 받은쪽지함</span>
+                <span id="bb-tab-saved" style="cursor:pointer;color:#336699;" onclick="window._drawBbList('saved')">★ 보관함</span>
+                <span style="margin-left:auto;cursor:pointer;color:#336699;font-size:10px;" onclick="window.fetchBbMsg('test')">테스트</span>
+            </div>
+            <div id="bbInboxBody" style="flex:1;overflow-y:auto;background:#eef8ff;display:flex;flex-direction:column;min-height:0;"></div>`;
+            document.body.appendChild(p);
+            window.makeResizable(p);
+            window._drawBbList('inbox');
+        };
 
+        window._drawBbList = function(tab='inbox'){
+            const ti=document.getElementById('bb-tab-inbox'),ts=document.getElementById('bb-tab-saved');
+            if(ti&&ts){
+                ti.style.fontWeight=tab==='inbox'?'bold':'normal';ti.style.borderBottom=tab==='inbox'?'2px solid #1a78b8':'none';ti.style.color=tab==='inbox'?'#003366':'#336699';
+                ts.style.fontWeight=tab==='saved'?'bold':'normal';ts.style.borderBottom=tab==='saved'?'2px solid #1a78b8':'none';ts.style.color=tab==='saved'?'#003366':'#336699';
+            }
+            const body=document.getElementById('bbInboxBody');if(!body)return;
+            body.innerHTML='';
             const letters=tab==='saved'?[...window._getSaved()].reverse():[...window._getLetters()].reverse();
             if(!letters.length){
-                body.innerHTML=`<div style="padding:20px;color:#aaa;font-family:Gulim;font-size:11px;text-align:center;">${tab==='saved'?'보관한 편지가 없어요.':'편지가 없어요.<br>테스트 버튼을 눌러보세요.'}</div>`;
+                body.innerHTML=`<div style="padding:30px;color:#99aabb;font-family:Dotum,Gulim;font-size:11px;text-align:center;">${tab==='saved'?'보관한 쪽지가 없어요.':'쪽지가 없어요.<br>테스트 버튼을 눌러보세요.'}</div>`;
                 return;
             }
-            // 헤더
             const hdr=document.createElement('div');
-            hdr.style.cssText='background:#000080;color:white;padding:5px 10px;font-size:11px;font-family:Gulim;display:grid;grid-template-columns:24px 52px 52px 1fr 52px;gap:4px;flex-shrink:0;';
-            hdr.innerHTML='<span></span><span>보낸이</span><span>받는이</span><span>제목</span><span>날짜</span>';
+            hdr.style.cssText='background:linear-gradient(to bottom,#b8d8f0,#a0c8e4);color:#003366;padding:4px 10px;font-size:11px;font-family:Dotum,Gulim;display:grid;grid-template-columns:28px 60px 1fr 64px;gap:4px;flex-shrink:0;border-bottom:1px solid #88b8d8;';
+            hdr.innerHTML='<span></span><span>보낸이</span><span>내용</span><span>날짜</span>';
             body.appendChild(hdr);
-
             letters.forEach((m,i)=>{
                 const fromImg=m.from==='지칸'?window.config.profiles.jikan:window.config.profiles.jiuin;
-                const readKey='lr_'+tab+'_'+m.from+'_'+(m.dateKey||m.date||i);
+                const readKey='bb_read_'+(m.dateKey||m.date||i)+'_'+m.from;
                 const isRead=!!localStorage.getItem(readKey);
                 const isSaved=window._getSaved().some(s=>s.from===m.from&&s.dateKey===m.dateKey&&s.letter===m.letter);
-
                 const row=document.createElement('div');
-                row.style.cssText=`display:grid;grid-template-columns:24px 52px 52px 1fr 52px;gap:4px;align-items:center;padding:5px 10px;border-bottom:1px solid #e8e8e8;cursor:pointer;background:${isRead?'white':'#fffbe6'};font-family:Gulim;font-size:11px;color:black;`;
+                row.style.cssText=`display:grid;grid-template-columns:28px 60px 1fr 64px;gap:4px;align-items:center;padding:5px 10px;border-bottom:1px solid #cce4f4;cursor:pointer;background:${isRead?'white':'#e0f2ff'};font-family:Dotum,Gulim;font-size:11px;color:#003366;`;
                 row.innerHTML=`
-                    <img src="${fromImg}" style="width:20px;height:20px;border-radius:4px;object-fit:cover;">
-                    <span style="${isRead?'':'font-weight:bold;'}overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.from}</span>
-                    <span style="color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.to}</span>
-                    <span style="${isRead?'':'font-weight:bold;'}overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.subject||'...'}</span>
-                    <span style="color:#888;font-size:10px;white-space:nowrap;">${m.date||''}</span>`;
-
+                    <img src="${fromImg}" style="width:24px;height:24px;border-radius:4px;border:1px solid #88aacc;object-fit:cover;">
+                    <span style="${isRead?'':'font-weight:bold;'}color:#003399;">${m.from}</span>
+                    <span style="${isRead?'color:#666;':'font-weight:bold;'}overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.subject||'...'}</span>
+                    <span style="color:#5588aa;font-size:10px;white-space:nowrap;">${m.date||''}</span>`;
                 const lDiv=document.createElement('div');
                 lDiv.setAttribute('data-ltr','1');
-                lDiv.style.cssText='display:none;background:#fffef5;border:1px inset #c0c0c0;margin:0 8px 6px;padding:14px 16px;';
+                lDiv.style.cssText='display:none;margin:0 0 0 0;';
+                // 쪽지 내부 미리보기 (인라인 팝업)
                 lDiv.innerHTML=`
-                    <div style="white-space:pre-line;font-family:Batang,BatangChe,serif;font-size:13px;color:#222;line-height:1.9;">${m.letter}</div>
-                    <div style="margin-top:10px;display:flex;gap:6px;justify-content:flex-end;">
-                        <button class="xp-btn" style="font-size:10px;padding:2px 10px;" data-bm="${i}"
+                    <div style="background:#d8eefa;border-top:1px solid #88b8d8;border-bottom:1px solid #88b8d8;padding:6px 10px;font-family:Dotum,Gulim;font-size:11px;color:#1a3a5e;display:flex;align-items:center;gap:8px;">
+                        <img src="https://win98icons.alexmeub.com/icons/png/mail-0.png" style="width:18px;height:18px;">
+                        <span>보낸친구 : 『${m.from}』♡ミ (${m.date||''})&nbsp;&nbsp; 대화 | 문자</span>
+                    </div>
+                    <div style="display:flex;background:white;min-height:100px;">
+                        <div style="flex:1;padding:12px 14px;font-family:Dotum,Gulim;font-size:12px;color:#222;line-height:1.8;white-space:pre-line;">${m.letter}</div>
+                    </div>
+                    <div style="background:#d0e8f8;border-top:1px solid #88b8d8;padding:5px 10px;display:flex;gap:5px;">
+                        <button class="bb-btn" style="font-size:10px;padding:2px 10px;">답장</button>
+                        <button class="bb-btn" style="font-size:10px;padding:2px 10px;">전달</button>
+                        <button class="bb-btn" style="font-size:10px;padding:2px 10px;">친구정보</button>
+                        <button class="bb-btn" style="font-size:10px;padding:2px 10px;margin-left:auto;" data-bm="${i}"
                             onclick="event.stopPropagation();window._toggleSave(this,'${tab}')">${isSaved?'★ 보관됨':'☆ 보관하기'}</button>
-                        ${tab==='saved'?`<button class="xp-btn" style="font-size:10px;padding:2px 10px;" onclick="event.stopPropagation();window._deleteSaved(${i})">삭제</button>`:''}
+                        <button class="bb-btn" style="font-size:10px;padding:2px 10px;" onclick="event.stopPropagation();this.closest('[data-ltr]').style.display='none'">닫기</button>
                     </div>`;
-                // 편지 객체를 버튼 data에 저장
                 lDiv.querySelector('[data-bm]')._letter=m;
-
                 row.onclick=()=>{
                     const open=lDiv.style.display==='block';
                     body.querySelectorAll('[data-ltr]').forEach(el=>el.style.display='none');
                     lDiv.style.display=open?'none':'block';
-                    if(!open){row.style.background='white';row.querySelectorAll('span').forEach(s=>s.style.fontWeight='normal');localStorage.setItem(readKey,'1');}
+                    if(!open){row.style.background='white';localStorage.setItem(readKey,'1');}
                 };
-                body.appendChild(row);
-                body.appendChild(lDiv);
+                body.appendChild(row);body.appendChild(lDiv);
             });
+        };
+
+        // ─── 쪽지 수신 팝업 (이미지 2번과 동일) ───
+        window._openBbPopup = function(m){
+            document.getElementById('bbPopup')?.remove();
+            const fromImg=m.from==='지칸'?window.config.profiles.jikan:window.config.profiles.jiuin;
+            const now=new Date();
+            const timeStr=`${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+            const pop=document.createElement('div');pop.id='bbPopup';pop.className='bb-popup draggable';
+            pop.style.cssText='top:110px;left:28%;width:520px;';
+            pop.innerHTML=`
+            <div class="bb-popup-title drag-handle">
+                <img src="https://win98icons.alexmeub.com/icons/png/inetcfg_2-0.png" style="width:14px;height:14px;">
+                <span style="flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">「${m.from}의작은ㅇr비새」♡ミ님으로부터 쪽지가 도착하였습니다.</span>
+                <div style="display:flex;gap:2px;flex-shrink:0;">
+                    <div class="bb-tbtn">−</div><div class="bb-tbtn">□</div>
+                    <div class="bb-tbtn" onclick="document.getElementById('bbPopup').remove()">✕</div>
+                </div>
+            </div>
+            <div class="bb-popup-header">
+                <img src="https://win98icons.alexmeub.com/icons/png/mail-0.png" style="width:28px;height:28px;">
+                <div style="font-family:Dotum,Gulim;font-size:12px;color:#1a3a5e;font-weight:bold;">
+                    보낸친구 : 『${m.from}의작은ㅇr비새』♡ミ (${timeStr})&nbsp;&nbsp; 대화 | 문자
+                </div>
+            </div>
+            <div style="display:flex;flex:1;min-height:240px;">
+                <div style="flex:1;background:white;border:2px inset #99bbcc;margin:8px 4px 8px 8px;padding:12px;font-family:Dotum,Gulim;font-size:13px;color:#222;line-height:1.9;overflow-y:auto;white-space:pre-line;">${m.letter}</div>
+                <div style="width:158px;flex-shrink:0;background:linear-gradient(to bottom,#daeefa,#b8d4ea);border-left:1px solid #88c0de;display:flex;align-items:center;justify-content:center;">
+                    <img src="${fromImg}" style="width:148px;height:200px;object-fit:cover;border:2px solid #88aacc;">
+                </div>
+            </div>
+            <div class="bb-popup-btns">
+                <button class="bb-btn">답장</button>
+                <button class="bb-btn">전달</button>
+                <button class="bb-btn">친구정보</button>
+                <button class="bb-btn" style="margin-left:auto;" onclick="document.getElementById('bbPopup').remove()">닫기</button>
+            </div>
+            <div class="bb-popup-statusbar">Comeback_Challenge! 마비노기 G6 두 번째 시즌이 시작된다!!</div>`;
+            document.body.appendChild(pop);
+            window.makeResizable(pop);
         };
 
         window._toggleSave=function(btn,tab){
@@ -1491,81 +1703,75 @@
         };
         window._deleteSaved=function(idx){
             const saved=window._getSaved();
-            // reversed index → 원본 index
-            const orig=saved.length-1-idx;
-            saved.splice(orig,1);
+            saved.splice(saved.length-1-idx,1);
             window._saveSaved(saved);
-            window._drawLetterList('saved');
+            window._drawBbList('saved');
         };
 
-        window.fetchDailyMsg=async function(mode){
-            const body=document.getElementById('dailyMsgBody');if(!body)return;
+        window.fetchBbMsg=async function(mode){
+            const body=document.getElementById('bbInboxBody');
             const today=new Date().toDateString();
-            // 캐시 사용 (refresh/test 아닐 때)
-            if(mode!=='refresh'&&mode!=='test'){
-                const cached=localStorage.getItem('dailyMsg_'+today);
-                if(cached){window._drawLetterList('inbox');return;}
+            if(mode!=='refresh'&&mode!=='test'&&mode!=='auto'){
+                const cached=localStorage.getItem('bbMsg_'+today);
+                if(cached){window._drawBbList('inbox');return;}
             }
-            body.innerHTML='<div style="color:#aaa;font-size:11px;font-family:Gulim;text-align:center;padding:30px;">편지 불러오는 중...</div>';
+            if(body)body.innerHTML='<div style="color:#669;font-size:11px;font-family:Dotum,Gulim;text-align:center;padding:30px;">쪽지 불러오는 중...</div>';
             const dateStr=new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'});
+            const timeStr=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
             try{
-                const GEMINI_API_KEY_1 = "AIzaSyBUA4zMb6QONuLnEb7eu_BcE4rRN4DgJc8"; // ← 버디버디 쪽지용 API 키
-                const _url1=`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${GEMINI_API_KEY_1}`;
-                const _payload1={
-                    contents:[{parts:[{text:`아래 형식의 JSON 배열만 출력해. 마크다운 코드블록(\`\`\`json 등) 절대 쓰지 마. 대괄호로 시작해서 대괄호로 끝나는 순수한 JSON 텍스트만 출력해.\n\n너는 두 캐릭터를 완벽히 연기하는 롤플레이어야.\n\n【지칸】 23세 남성. NSI BLACK 협상부. 말보다 주먹, 입 걸고 화 많음. 지우인한테 소유욕 있지만 절대 티 안 냄. 말투: 짧고 거칠게, 욕 자연스럽게, 반말.\n예시: "실실 웃는 게 니가 더 잡상인 같아." / "웬 모르는 척이야."\n\n【지우인】 29세 남성. NSI BLACK 보안부. 쾌락주의, 감정 둔함, 놀리고 비꼬기 즐김. 말투: 나긋하지만 악의적, 반말, 존댓말 절대 없음.\n예시: "호 해줄래? 아님 빨아주나?" / "오래 붙어있으면 나 인기 떨어지는데."\n\n오늘(${dateStr}) 있었던 일을 서로에게 3~4문장. 본문만(인사말·서명 없이). subject는 말걸기 느낌 5~10자.\n출력 형식: [{"from":"지칸","to":"지우인","subject":"...","letter":"..."},\'\n{"from":"지우인","to":"지칸","subject":"...","letter":"..."}]`}]}],
-                    generationConfig:{responseMimeType:'application/json',temperature:1.1,maxOutputTokens:1500}
-                };
+                const _url1=`${window.GEMINI_PROXY}?model=gemini-3.1-flash-lite-preview`;
+                const _payload1={contents:[{parts:[{text:`아래 형식의 JSON 배열만 출력해. 마크다운 코드블록 절대 쓰지 마. 순수한 JSON만.\n\n두 캐릭터가 버디버디로 쪽지 보내는 상황.\n【지칸】23세 남성. 짧고 거칠게. 욕 자연스럽게. 반말.\n【지우인】29세 남성. 나긋나긋. 가볍게. 반말.\n\n오늘(${dateStr} ${timeStr}) 일상 주제(날씨/주말/최근에 본 것/먹은 것/심심풀이 등)로 서로에게 짧게 1~2문장. subject는 5~8자.\n출력: [{"from":"지칸","to":"지우인","subject":"...","letter":"..."},{"from":"지우인","to":"지칸","subject":"...","letter":"..."}]`}]}],generationConfig:{responseMimeType:'application/json',temperature:1.2,maxOutputTokens:600}};
                 const _res1=await fetch(_url1,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(_payload1)});
                 const data=await _res1.json();
                 if(data.error)throw new Error(data.error.message);
-                if(!data.candidates||!data.candidates[0])throw new Error('응답 없음: '+JSON.stringify(data).slice(0,100));
-                let raw=data.candidates[0].content.parts[0].text;
-                raw=raw.replace(/```json/g,'').replace(/```/g,'').trim();
-                // JSON 문자열 값 안의 literal 개행을 \n으로 변환 후 파싱
+                if(!data.candidates||!data.candidates[0])throw new Error('응답 없음');
+                let raw=data.candidates[0].content.parts[0].text.replace(/```json/g,'').replace(/```/g,'').trim();
                 let msgs;
-                try{
-                    msgs=JSON.parse(raw);
-                }catch(e1){
-                    // 파싱 실패시: 문자열 값 내부 개행 이스케이프 후 재시도
-                    const fixed=raw.replace(/(?<=:"[^"]*?)\n(?=[^"]*?")/gs, '\\n');
-                    try{
-                        msgs=JSON.parse(fixed);
-                    }catch(e2){
-                        // 최후 수단: [ ] 범위 추출
+                try{msgs=JSON.parse(raw);}catch(e1){
+                    try{msgs=JSON.parse(raw.replace(/(?<=:"[^"]*?)\n(?=[^"]*?")/gs,'\\n'));}catch(e2){
                         const si=raw.indexOf('['),ei=raw.lastIndexOf(']');
-                        if(si===-1||ei===-1)throw new Error('파싱 실패: '+raw.slice(0,100));
+                        if(si<0||ei<0)throw new Error('파싱 실패');
                         msgs=JSON.parse(raw.slice(si,ei+1));
                     }
                 }
-                const dateShort=new Date().toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'});
-                msgs.forEach(m=>{m.date=dateShort;m.dateKey=today+(mode==='test'?'_t'+Date.now():'');});
-
-                if(mode!=='test'){
-                    // 오늘 캐시
-                    localStorage.setItem('dailyMsg_'+today,JSON.stringify(msgs));
-                    // 누적 (같은 dateKey 덮어쓰기)
-                    const all=window._getLetters().filter(l=>l.dateKey!==today);
-                    window._saveLetters([...all,...msgs]);
+                const dateShort=new Date().toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+                const dk=today+(mode==='test'||mode==='auto'?'_t'+Date.now():'');
+                msgs.forEach(m=>{m.date=dateShort;m.dateKey=dk;});
+                if(mode==='test'||mode==='auto'){
+                    window._saveLetters([...window._getLetters(),...msgs]);
+                } else {
+                    localStorage.setItem('bbMsg_'+today,JSON.stringify(msgs));
+                    window._saveLetters([...window._getLetters().filter(l=>l.dateKey!==today),...msgs]);
                 }
-                window._drawLetterList('inbox');
+                msgs.forEach((m,i)=>setTimeout(()=>{
+                    const ns=document.getElementById('notifSound');if(ns){ns.currentTime=0;ns.play().catch(()=>{});}
+                    const badge=document.getElementById('dailyBadge');if(badge)badge.style.display='block';
+                    window.pushNotif('💬 버디버디 쪽지',`${m.from}님의 쪽지 도착\n"${m.subject}"`,()=>{window._openBbPopup(m);});
+                },i*900));
+                window._drawBbList('inbox');
             }catch(err){
-                body.innerHTML=`<div style="color:#c00;font-size:11px;font-family:Gulim;text-align:center;padding:20px;">오류: ${err.message}</div>`;
+                if(body)body.innerHTML=`<div style="color:#c00;font-size:11px;font-family:Dotum,Gulim;text-align:center;padding:20px;">오류: ${err.message}</div>`;
             }
         };
 
+        // ─── 랜덤 알림 스케줄 ───
         window.initDailyMsg=function(){
             const today=new Date().toDateString();
-            if(!localStorage.getItem('dailyMsg_'+today)){
+            if(!localStorage.getItem('bbMsg_'+today)){
                 const badge=document.getElementById('dailyBadge');if(badge)badge.style.display='block';
-                window.pushNotif('💌 메신저','지칸님이 편지를 보냈어요.',()=>window.openDailyMsg());
-                setTimeout(()=>window.pushNotif('💌 메신저','지우인님이 편지를 보냈어요.',()=>window.openDailyMsg()),800);
+                setTimeout(()=>{
+                    const ns=document.getElementById('notifSound');if(ns){ns.currentTime=0;ns.play().catch(()=>{});}
+                    window.pushNotif('💬 버디버디','새 쪽지가 도착했어요.',()=>window.openBuddyBuddy());
+                },2000);
             }
             const now=new Date(),midnight=new Date(now);midnight.setHours(24,0,0,0);
-            setTimeout(()=>{
-                localStorage.removeItem('dailyMsg_'+today);
-                window.initDailyMsg();
-                setInterval(()=>{localStorage.removeItem('dailyMsg_'+new Date().toDateString());window.initDailyMsg();},86400000);
-            },midnight-now);
+            const remaining=midnight-now;
+            const count=2+Math.floor(Math.random()*2);
+            for(let i=0;i<count;i++){
+                const delay=Math.floor(Math.random()*remaining*0.85)+remaining*0.05;
+                setTimeout(()=>{window.fetchBbMsg('auto');},delay);
+            }
+            setTimeout(()=>{localStorage.removeItem('bbMsg_'+today);window.initDailyMsg();},remaining);
         };
 
         // 🌐 인터넷 익스플로러
@@ -2169,8 +2375,7 @@
                 return;
             }
             try{
-                const GEMINI_API_KEY_2 = "AIzaSyBUA4zMb6QONuLnEb7eu_BcE4rRN4DgJc8"; // ← 인터넷 검색용 API 키
-            const _url2=`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${GEMINI_API_KEY_2}`;
+                const _url2=`${window.GEMINI_PROXY}?model=gemini-3.1-flash-lite-preview`;
                 const _payload2={
                     contents:[{parts:[{text:`너는 오래되고 기묘한 웹 아카이브다. 건조하고 음산하고 불안한 어조로만 답한다.\n- 사실처럼 쓰되 뭔가 이상하고 으스스한 뉘앙스\n- 감정 없는 건조한 문체. 오래된 기록물처럼\n- 마지막엔 짧고 불안한 주석이나 경고 한 줄 반드시 추가\n- HTML body 내용만. font-family:Gulim. 한국어. padding:16px.\n- 마크다운 코드블록 사용 금지.\n\n검색어: ${query}`}]}],
                     generationConfig:{temperature:0.9,maxOutputTokens:600}
